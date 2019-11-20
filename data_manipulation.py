@@ -1,8 +1,13 @@
 import numpy as np
 from tqdm import tqdm
+import pickle
 
 
 def calc_row_col_dist(arr_2d, node_idx, k=50, with_distance=False,axis=0):
+    if isinstance(arr_2d, str):
+        with open(arr_2d, 'rb') as f:
+            arr_2d = pickle.load(f)
+
     dist_2 = np.sum((arr_2d - arr_2d[node_idx])**2, axis=axis)
     idx_dist_lst = sorted([(i, dist) for i, dist in enumerate(dist_2)],key=lambda x:x[1])
     if with_distance:
