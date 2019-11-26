@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 
-def plot_df(df, x, y, to_filter, index_filter_vals, title, to_color=True, colors=None):
+def plot_df(df, x, y, to_filter, index_filter_vals=None, title=None, to_color=True, colors=None):
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(1, 1, 1)
     ax.set_xlabel(x, fontsize=15)

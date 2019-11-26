@@ -2,6 +2,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 import pandas as pd
+from plotting_utils import smart_print,plot_df
 
 
 def normalize(df, is_mean, is_std, is_max, is_biultin):
@@ -28,15 +29,6 @@ def normalize(df, is_mean, is_std, is_max, is_biultin):
             assert not is_std
             assert not is_biultin
             f = np.max
-
-        #         df_normalized = pd.DataFrame(columns=df.columns, index=df.index)
-
-        #         for col in tqdm(df.columns):
-        #             vals = df[col]
-        #             std_val = f(vals)
-        #             mean_val = g(vals)
-
-        #             df_normalized[col] = (vals-mean_val)/std_val
         df_normalized = df.apply(lambda col: (col - g(col)) / f(col), axis='columns')
 
     return df_normalized
@@ -50,3 +42,17 @@ def do_pca(df_normalized):
 
     return principalDf, pca.explained_variance_ratio_
 
+
+def run_it_all(df, is_mean=False, is_std=True, is_max=False, is_builtin=False, to_filter=False, to_color=False):
+    try:
+        normalized_df = normalize(df, is_mean, is_std, is_max, is_builtin)
+        normalized_df.dropna(axis=0, inplace=True)
+        print("after normalize")
+        principalDf, evr = do_pca(normalized_df)
+        print("after pca")
+        principalDf.index = normalized_df.index
+        smart_print(is_mean, is_std, is_max, is_builtin, to_filter, evr)
+        plot_df(principalDf, x='pc1', y='pc2', to_filter=to_filter, to_color=to_color)
+        return principalDf, evr
+    except AssertionError as error:
+        pass
