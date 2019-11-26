@@ -32,3 +32,21 @@ def plot_df_color_by_col_vals(df, x, y, col, title, is_grid=True, pallete='jet')
     if is_grid:
         ax.grid()
     plt.show()
+
+
+def smart_print(is_mean, is_std, is_max, is_builtin, to_filter, evr):
+    to_print = ''
+    if is_mean:
+        to_print += 'mean '
+    if is_std:
+        to_print += 'std '
+    if is_max:
+        to_print += 'max '
+    if is_builtin:
+        to_print += 'builtin '
+    if to_filter:
+        to_print += 'filtered '
+    if to_print == '':
+        to_print = 'original'
+    to_print = '{} {} {}'.format(to_print, evr, sum(evr))
+    print(to_print)
