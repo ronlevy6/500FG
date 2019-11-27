@@ -20,7 +20,7 @@ def plot_df(df, x, y, to_filter, index_filter_vals=None, title=None, to_color=Tr
     plt.show()
 
 
-def plot_df_color_by_col_vals(df, x, y, col, title, is_grid=True, pallete='jet'):
+def plot_df_color_by_col_vals(df, x, y, col, title=None, is_grid=True, pallete='jet'):
     print(col)
     ax = df.plot.scatter(x=x, y=y, c=col, s=50, cmap=pallete, figsize=(10 ,8))
     ax.set_xlabel(x, fontsize=15)

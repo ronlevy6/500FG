@@ -40,7 +40,7 @@ def do_pca(df_normalized):
     principalDf = pd.DataFrame(data=principalComponents
                                , columns=['pc1', 'pc2'])
 
-    return principalDf, pca.explained_variance_ratio_
+    return principalDf, pca.explained_variance_ratio_, pca
 
 
 def run_it_all(df, is_mean=False, is_std=True, is_max=False, is_builtin=False, to_filter=False, to_color=False):
@@ -48,11 +48,11 @@ def run_it_all(df, is_mean=False, is_std=True, is_max=False, is_builtin=False, t
         normalized_df = normalize(df, is_mean, is_std, is_max, is_builtin)
         normalized_df.dropna(axis=0, inplace=True)
         print("after normalize")
-        principalDf, evr = do_pca(normalized_df)
+        principalDf, evr, pca = do_pca(normalized_df)
         print("after pca")
         principalDf.index = normalized_df.index
         smart_print(is_mean, is_std, is_max, is_builtin, to_filter, evr)
         plot_df(principalDf, x='pc1', y='pc2', to_filter=to_filter, to_color=to_color)
-        return principalDf, evr
+        return principalDf, evr, pca
     except AssertionError as error:
         pass
