@@ -27,8 +27,8 @@ def plot_df_color_by_col_vals(df, x, y, col, title=None, is_grid=True, pallete='
     ax.set_ylabel(y, fontsize=15)
     if title:
         ax.set_title('{} colored by {}'.format(title, col), fontsize=20)
-    else:
-        ax.set_title('{} vs {}, colored by {}'.format(x, y, col), fontsize=20)
+    # else:
+        # ax.set_title('{} vs {}, colored by {}'.format(x, y, col), fontsize=20)
     if is_grid:
         ax.grid()
     plt.show()
