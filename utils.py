@@ -18,3 +18,15 @@ def get_angle_in_circle(x, y, x0, y0):
 #     if angle < 0:
 #         angle += 180
     return angle
+
+
+def get_amit_anchors():
+    with open('/export/home/ronlevy/projects/500FG_GTEx/amits_anchors_genes/selectedGenesForLupus.txt') as f:
+        amits_filtered_data = f.readlines()
+        amits_filtered_data = set([f.strip() for f in amits_filtered_data])
+
+    with open('/export/home/ronlevy/projects/500FG_GTEx/amits_anchors_genes/selectedGenesForLupusLarge.txt') as f:
+        amits_full_data = f.readlines()
+        amits_full_data = set([f.strip() for f in amits_full_data])
+
+    return amits_full_data, amits_filtered_data
