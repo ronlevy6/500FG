@@ -44,7 +44,10 @@ def calc_dist_in_df(df, by_idx=True, k=50, with_distance=False, executor=None, t
     return dist_lsts, tmp
 
 
-def smooth_data(df, idx, nns_data):
+def smooth_data(df, idx, nns_data, by_name=False):
     nns = nns_data[idx]
-    fdf = df.iloc[nns]
+    if by_name:
+        fdf = df.loc[nns]
+    else:
+        fdf = df.iloc[nns]
     return fdf.mean()
