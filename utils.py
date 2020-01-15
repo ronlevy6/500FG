@@ -30,3 +30,11 @@ def get_amit_anchors():
         amits_full_data = set([f.strip() for f in amits_full_data])
 
     return amits_full_data, amits_filtered_data
+
+
+def chunks(obj, chunk_size=10):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(obj), chunk_size):
+        max_i = min(len(obj), i+chunk_size)
+        # yield [obj[j] for j in range(i, max_i)]
+        yield obj[i: max_i]
