@@ -28,8 +28,9 @@ def calc_states(tissue_dict, pca_df, fit_to_500FG=True, to_filter=None):
             if fit_to_500FG:
                 df = fit_GE_to_500fg(df, x1.index)
 
-            x1 = x1[x1.index.isin(df.index.get_level_values('name'))]
-            x2 = x2[x2.index.isin(df.index.get_level_values('name'))]
+            x1 = x1.loc[df.index.get_level_values('name')]
+            x2 = x2.loc[df.index.get_level_values('name')]
+
             A1 = np.vstack([x1, np.zeros(len(x1))]).T  # to make sure no intercept
             A2 = np.vstack([x2, np.zeros(len(x2))]).T  # to make sure no intercept
 
@@ -57,7 +58,8 @@ def calc_states_combined(tissue_dict, pca_df, fit_to_500FG=True, to_filter=None)
             if fit_to_500FG:
                 df = fit_GE_to_500fg(df, pca_df.index)
 
-            curr_pca_df=pca_df[pca_df.index.isin(df.index.get_level_values('name'))]
+            # curr_pca_df=pca_df[pca_df.index.isin(df.index.get_level_values('name'))]
+            curr_pca_df = pca_df.loc[df.index.get_level_values('name')]
 
             for ind in df.columns:
                 y = df[ind]
