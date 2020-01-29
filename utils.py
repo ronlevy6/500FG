@@ -1,6 +1,7 @@
 import uuid
 import os
 import math
+import pandas as pd
 
 
 def create_tmp_file(dir, suffix=None):
@@ -38,3 +39,20 @@ def chunks(obj, chunk_size=10):
         max_i = min(len(obj), i+chunk_size)
         # yield [obj[j] for j in range(i, max_i)]
         yield obj[i: max_i]
+
+
+def fix_str(val):
+    # runs on DF and makes str of tuple into a tuple
+    if pd.isna(val):
+        return val
+    else:
+        return eval(val)
+
+
+def fix_str_df(df):
+    # run fix_str on df
+    return df.applymap(fix_str)
+
+
+def rename_patient_name(df):
+    df.rename(columns=lambda x: 'GTEX-{}'.format(x.split('-')[1]), inplace=True)

@@ -59,7 +59,7 @@ def calc_states_combined(tissue_dict, pca_df, fit_to_500FG=True, to_filter=None)
                 df = fit_GE_to_500fg(df, pca_df.index)
 
             # curr_pca_df=pca_df[pca_df.index.isin(df.index.get_level_values('name'))]
-            curr_pca_df = pca_df.loc[df.index.get_level_values('name')]
+            curr_pca_df = pca_df.loc[df.index.get_level_values('name')].dropna()
 
             for ind in df.columns:
                 y = df[ind]
