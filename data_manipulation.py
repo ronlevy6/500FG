@@ -1,8 +1,9 @@
 import numpy as np
 from tqdm import tqdm
 import pickle
+import pandas as pd
 
-from utils import create_tmp_file
+from utils import create_tmp_file, rename_patient_name
 
 def calc_row_col_dist(arr_2d, node_idx, k=50, with_distance=False,axis=0):
     if isinstance(arr_2d, str):
@@ -51,3 +52,25 @@ def smooth_data(df, idx, nns_data, by_name=False):
     else:
         fdf = df.iloc[nns]
     return fdf.mean()
+
+
+def norm_gene(row, eps=1):
+    row = row - row.mean()
+    std = row.std()
+    if std == 0:
+        divide_by = eps
+    else:
+        divide_by = std
+    row = row / divide_by
+    return row
+
+
+def norm_df(pickle_path, output_path=None):
+    curr_df = pd.read_pickle(pickle_path)
+    curr_df = curr_df.astype(np.float64)
+    rename_patient_name(curr_df)
+    normed_df = curr_df.apply(norm_gene,axis=1)
+    if output_path is None:
+        output_path = pickle_path  # overwrite existing df
+    normed_df.to_pickle(output_path)
+    return output_path
