@@ -42,7 +42,9 @@ def chunks(obj, chunk_size=10):
 
 
 def fix_str(val):
-    # runs on DF and makes str of tuple into a tuple
+    """
+     runs on DF and makes str of tuple into a tuple of numbers
+    """
     if pd.isna(val):
         return val
     else:
@@ -50,9 +52,15 @@ def fix_str(val):
 
 
 def fix_str_df(df):
-    # run fix_str on df
+    """
+    run fix_str on df
+    """
     return df.applymap(fix_str)
 
 
 def rename_patient_name(df):
+    """
+    format GTEX naming to shorten, so individuals from several tissues could be easily joined
+    """
     df.rename(columns=lambda x: 'GTEX-{}'.format(x.split('-')[1]), inplace=True)
+    return df
