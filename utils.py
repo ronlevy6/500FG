@@ -64,3 +64,24 @@ def rename_patient_name(df):
     """
     df.rename(columns=lambda x: 'GTEX-{}'.format(x.split('-')[1]), inplace=True)
     return df
+
+
+def drop_na_by_pct(df, axis, pct_of_not_nulls=0.5, to_print=False):
+    thresh = df.shape[axis]*pct_of_not_nulls
+    ret_df = df.dropna(axis=1-axis, thresh=thresh)
+    if to_print:
+        print(df.shape, ret_df.shape)
+    return ret_df
+
+
+def make_pretty(val):
+    """
+    fit sub tissue value into subplots spacing..
+    """
+    sp = val.split(" ")
+    if len(sp) == 1:
+        return val
+    elif len(sp) >= 3:
+        return sp[0] + ' ' + sp[2][:10]
+    else:
+        return val
