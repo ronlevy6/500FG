@@ -85,3 +85,15 @@ def make_pretty(val):
         return sp[0] + ' ' + sp[2][:10]
     else:
         return val
+
+
+def by_idx(val, idx):
+    """
+    return val[idx] in case val is not None
+    :param val: indexed object - list/tuple
+    :param idx: index to access
+    :return: val[idx]
+    """
+    if pd.isna(val) or idx is None:
+        return val
+    return val[idx]
