@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 from scipy.cluster import hierarchy
@@ -25,7 +26,8 @@ def dist(v1, v2, min_vals_pct=0.4, penalty=10):
         return np.sqrt(sum((filtered[0]-filtered[1])**2))
 
 
-def clustermap_with_color(states_df, idx_to_plot, patient_data, color_col, title=None, min_vals_pct=0.4, palette='bwr'):
+def clustermap_with_color(states_df, idx_to_plot, patient_data, color_col, title=None, min_vals_pct=0.4,
+                          palette='bwr', to_save=None):
     tissues_data = list(states_df.index)
     df_to_clustermap = states_df.transpose().merge(patient_data, left_index=True, right_index=True)
     color_data = df_to_clustermap[color_col]
@@ -42,14 +44,20 @@ def clustermap_with_color(states_df, idx_to_plot, patient_data, color_col, title
     for label in sorted(color_data.unique()):
         g.ax_col_dendrogram.bar(0, 0, color=network_lut[label], label=label, linewidth=0)
         g.ax_col_dendrogram.legend(loc="upper left", ncol=6, bbox_to_anchor=(-0.2, 0.75, 0.5, 0.5))
+
+    if to_save is not None:
+        dir_to_save = os.path.join(to_save, title)
+        plt.savefig(dir_to_save+'.jpg')
+        plt.savefig(dir_to_save + '.pdf')
     plt.show()
     return g
 
 
 def get_cluster_from_clustermap_result(clustermap_res, is_row, title,
-                                       color_thresh_const=0.6, leaf_rotation=90, figsize=(15, 6)):
+                                       color_thresh_const=0.6, leaf_rotation=90, figsize=(15, 6), to_save=None):
     """
     prints clustering based on clustermap results
+    :param to_save: if not None-directory in which to save figure
     """
     plt.figure(figsize=figsize)
     plt.title(title, fontdict={'fontsize':20})
@@ -61,5 +69,9 @@ def get_cluster_from_clustermap_result(clustermap_res, is_row, title,
         labels = clustermap_res.data.columns
     dn = hierarchy.dendrogram(Z, labels=labels,
                               color_threshold=color_thresh_const*max(Z[:,2]), leaf_rotation=leaf_rotation)
+    if to_save is not None:
+        dir_to_save = os.path.join(to_save, title)
+        plt.savefig(dir_to_save+'.jpg')
+        plt.savefig(dir_to_save + '.pdf')
     plt.show()
     return dn
