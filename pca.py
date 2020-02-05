@@ -56,3 +56,21 @@ def run_it_all(df, is_mean=False, is_std=True, is_max=False, is_builtin=False, t
         return principalDf, evr, pca
     except AssertionError as error:
         pass
+
+
+def pca_tissue(states_df, tissues_to_pca):
+    """
+    run pca on states df for specific tissue
+    """
+    ret_d = dict()
+    for tissue in tissues_to_pca:
+        data = pd.DataFrame(states_df[tissue].dropna())
+    #     print(df.shape,data.shape)
+        data['s1'] = data[tissue].apply(lambda val: val[0])
+        data['s2'] = data[tissue].apply(lambda val: val[1])
+        del data[tissue]
+        pca = PCA(n_components=1)
+        principalComponents = pca.fit_transform(data)
+        principalDf = pd.DataFrame(data=principalComponents, columns=[tissue], index=data.index)
+        ret_d[tissue] = principalDf, pca
+    return ret_d
