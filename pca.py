@@ -74,3 +74,11 @@ def pca_tissue(states_df, tissues_to_pca):
         principalDf = pd.DataFrame(data=principalComponents, columns=[tissue], index=data.index)
         ret_d[tissue] = principalDf, pca
     return ret_d
+
+
+def merge_tissue_pcas(pca_d, patient_lst, min_explained_variance_ratio=0.3):
+    res_df = pd.DataFrame(columns=list(pca_d.keys()), index=patient_lst)
+    for tissue, (curr_pca_df, curr_pca) in pca_d.items():
+        if curr_pca.explained_variance_ratio_ > min_explained_variance_ratio:
+            res_df[tissue] = curr_pca_df
+    return res_df
