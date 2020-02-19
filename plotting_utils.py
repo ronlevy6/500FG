@@ -1,7 +1,11 @@
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 def plot_df(df, x, y, to_filter, index_filter_vals=None, title=None, to_color=True, colors=None):
+    """
+    plots scatter of dataframe with optional coloring
+    """
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(1, 1, 1)
     ax.set_xlabel(x, fontsize=15)
@@ -27,8 +31,6 @@ def plot_df_color_by_col_vals(df, x, y, col, title=None, is_grid=True, pallete='
     ax.set_ylabel(y, fontsize=15)
     if title:
         ax.set_title('{} colored by {}'.format(title, col), fontsize=20)
-    # else:
-        # ax.set_title('{} vs {}, colored by {}'.format(x, y, col), fontsize=20)
     if is_grid:
         ax.grid()
     plt.show()
@@ -50,3 +52,43 @@ def smart_print(is_mean, is_std, is_max, is_builtin, to_filter, evr):
         to_print = 'original'
     to_print = '{} {} {}'.format(to_print, evr, sum(evr))
     print(to_print)
+
+
+def plot_states_scatter_subplots(title, lst_of_states_df_with_names, patients_to_use, sub_tissues_to_use, patient_data,
+                                 hue, hue_order, figsize=(25, 35), to_save=None, legend_loc=(0.4, 0.8), progress_print=False):
+    """
+    plots multiple scatter plots for states. Each state_df consists of tuples when data available, else empty (None)
+    lst_of_states_df_with_names - list of tuples [(name, states_df),..]
+    current sizes and locations fit 4 columns X 7 rows
+    """
+    fig, axs = plt.subplots(nrows=len(sub_tissues_to_use), ncols=len(lst_of_states_df_with_names), figsize=figsize,
+                            gridspec_kw={'hspace': 0.5}, sharex=True, sharey=True)
+    fig.suptitle(title, fontsize=50)
+    for idx, (name, df_to_use) in enumerate(lst_of_states_df_with_names):
+        if progress_print:
+            print(name)
+        if patients_to_use is not None:
+            df_to_use = df_to_use[patients_to_use]
+        df_to_use = df_to_use.transpose().merge(patient_data, left_index=True, right_index=True)
+        for tissue_idx, sub_tissue in enumerate(sorted(sub_tissues_to_use)):
+            curr_row = tissue_idx
+            curr_col = idx
+            curr_ax = axs[curr_row][curr_col]
+            curr_data = df_to_use[[sub_tissue, 'AGE', 'sex_name', 'death_reason']].dropna()
+            curr_data['s1'] = curr_data[sub_tissue].apply(lambda x: x[0])
+            curr_data['s2'] = curr_data[sub_tissue].apply(lambda x: x[1])
+            # add lines for x=y=0
+            curr_ax.axhline(y=0.0, color='black', linestyle='--', linewidth=0.8, )
+            curr_ax.axvline(x=0.0, color='black', linestyle='--', linewidth=0.8, )
+
+            a = sns.scatterplot(x='s1', y='s2', hue=hue, data=curr_data, ax=curr_ax, hue_order=hue_order)
+            handles, labels = curr_ax.get_legend_handles_labels()
+            a.legend_.remove()
+            curr_ax.title.set_text('{}-{}'.format(sub_tissue, name))
+
+    leg = fig.legend(handles, labels, loc='center', prop={'size': 19}, bbox_to_anchor=legend_loc)
+    if to_save is not None:
+        plt.savefig(to_save + '.jpg')
+        plt.savefig(to_save + '.pdf')
+    plt.show()
+    return fig, axs, leg
