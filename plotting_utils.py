@@ -83,7 +83,10 @@ def plot_states_scatter_subplots(title, lst_of_states_df_with_names, patients_to
 
             a = sns.scatterplot(x='s1', y='s2', hue=hue, data=curr_data, ax=curr_ax, hue_order=hue_order)
             handles, labels = curr_ax.get_legend_handles_labels()
-            a.legend_.remove()
+            try:
+                a.legend_.remove()
+            except AttributeError:
+                bla = 0
             curr_ax.title.set_text('{}-{}'.format(sub_tissue, name))
 
     leg = fig.legend(handles, labels, loc='center', prop={'size': 19}, bbox_to_anchor=legend_loc)
@@ -91,4 +94,5 @@ def plot_states_scatter_subplots(title, lst_of_states_df_with_names, patients_to
         plt.savefig(to_save + '.jpg')
         plt.savefig(to_save + '.pdf')
     plt.show()
+    plt.close()
     return fig, axs, leg
