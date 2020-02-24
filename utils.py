@@ -97,3 +97,28 @@ def by_idx(val, idx):
     if pd.isna(val) or idx is None:
         return val
     return val[idx]
+
+
+def fix_values_specific(val, min_val=-7, max_val=7):
+    """
+    changes boundaries of value to fit limits (prevent tail..)
+    """
+    if val < min_val:
+        return min_val
+    if val > max_val:
+        return max_val
+    return val
+
+
+def fix_text(legend, entry_len=3):
+    """
+    shortens length of entries in legend
+    :return:
+    """
+    for entry in legend.get_texts():
+        txt = entry.get_text()
+        try:
+            ftxt = float(txt)
+            entry.set_text(round(ftxt, entry_len))
+        except ValueError:
+            continue
