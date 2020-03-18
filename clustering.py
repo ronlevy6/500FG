@@ -35,7 +35,8 @@ def clustermap_with_color(states_df, idx_to_plot, patient_data, color_col, title
     network_pal = sns.color_palette(palette, len(set(color_data)))
     network_lut = dict(zip(set(color_data.values), network_pal))
     network_colors = pd.Series(color_data).map(network_lut)
-
+    if len(set(network_colors.values)) == 1:
+        network_colors = None
     g = sns.clustermap(df_to_clustermap[tissues_data].applymap(lambda x: by_idx(x, idx_to_plot)),
                        metric=lambda u, v: dist(u, v, min_vals_pct),
                        figsize=(15, 10), method='complete', row_colors=network_colors)
@@ -46,6 +47,7 @@ def clustermap_with_color(states_df, idx_to_plot, patient_data, color_col, title
         g.ax_col_dendrogram.legend(loc="upper left", ncol=6, bbox_to_anchor=(-0.2, 0.75, 0.5, 0.5))
 
     if to_save is not None:
+        plt.tight_layout()
         dir_to_save = os.path.join(to_save, title)
         plt.savefig(dir_to_save+'.jpg')
         plt.savefig(dir_to_save + '.pdf')
@@ -70,6 +72,7 @@ def get_cluster_from_clustermap_result(clustermap_res, is_row, title,
     dn = hierarchy.dendrogram(Z, labels=labels,
                               color_threshold=color_thresh_const*max(Z[:,2]), leaf_rotation=leaf_rotation)
     if to_save is not None:
+        plt.tight_layout()
         dir_to_save = os.path.join(to_save, title)
         plt.savefig(dir_to_save+'.jpg')
         plt.savefig(dir_to_save + '.pdf')

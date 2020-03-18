@@ -55,7 +55,8 @@ def smart_print(is_mean, is_std, is_max, is_builtin, to_filter, evr):
 
 
 def plot_states_scatter_subplots(title, lst_of_states_df_with_names, patients_to_use, sub_tissues_to_use, patient_data,
-                                 hue, hue_order, figsize=(25, 35), to_save=None, legend_loc=(0.4, 0.8), progress_print=False):
+                                 hue, hue_order, figsize=(25, 35), to_save=None, legend_loc=(0.4, 0.8),
+                                 progress_print=False, to_show=True):
     """
     plots multiple scatter plots for states. Each state_df consists of tuples when data available, else empty (None)
     lst_of_states_df_with_names - list of tuples [(name, states_df),..]
@@ -93,6 +94,7 @@ def plot_states_scatter_subplots(title, lst_of_states_df_with_names, patients_to
     if to_save is not None:
         plt.savefig(to_save + '.jpg')
         plt.savefig(to_save + '.pdf')
-    plt.show()
+    if to_show:
+        plt.show()
     plt.close()
     return fig, axs, leg
