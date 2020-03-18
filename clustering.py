@@ -49,8 +49,8 @@ def clustermap_with_color(states_df, idx_to_plot, patient_data, color_col, title
     if to_save is not None:
         plt.tight_layout()
         dir_to_save = os.path.join(to_save, title)
-        plt.savefig(dir_to_save+'.jpg')
-        plt.savefig(dir_to_save + '.pdf')
+        g.savefig(dir_to_save+'.jpg')
+        g.savefig(dir_to_save + '.pdf')
     plt.show()
     return g
 
