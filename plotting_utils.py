@@ -55,8 +55,8 @@ def smart_print(is_mean, is_std, is_max, is_builtin, to_filter, evr):
 
 
 def plot_states_scatter_subplots(title, lst_of_states_df_with_names, patients_to_use, sub_tissues_to_use, patient_data,
-                                 hue, hue_order, figsize=(25, 35), to_save=None, legend_loc=(0.4, 0.8),
-                                 progress_print=False, to_show=True):
+                                  hue, hue_order, figsize=(25, 35), to_save=None, legend_loc=(0.4, 0.8),
+                                  progress_print=False, to_show=True, title_fontsize=28, ylabel_fontsize=14):
     """
     plots multiple scatter plots for states. Each state_df consists of tuples when data available, else empty (None)
     lst_of_states_df_with_names - list of tuples [(name, states_df),..]
@@ -75,7 +75,7 @@ def plot_states_scatter_subplots(title, lst_of_states_df_with_names, patients_to
             curr_row = tissue_idx
             curr_col = idx
             curr_ax = axs[curr_row][curr_col]
-            curr_data = df_to_use[[sub_tissue, 'AGE', 'sex_name', 'death_reason']].dropna()
+            curr_data = df_to_use[[sub_tissue, 'AGE', 'death_reason', hue]].dropna()
             curr_data['s1'] = curr_data[sub_tissue].apply(lambda x: x[0])
             curr_data['s2'] = curr_data[sub_tissue].apply(lambda x: x[1])
             # add lines for x=y=0
@@ -88,9 +88,12 @@ def plot_states_scatter_subplots(title, lst_of_states_df_with_names, patients_to
                 a.legend_.remove()
             except AttributeError:
                 bla = 0
-            curr_ax.title.set_text('{}-{}'.format(sub_tissue, name))
+            curr_ax.title.set_text('{}'.format(name))
+            curr_ax.title.set_fontsize(title_fontsize)
+            if curr_col == 0:
+                a.set_ylabel('{}'.format(sub_tissue), fontsize=ylabel_fontsize)
 
-    leg = fig.legend(handles, labels, loc='center', prop={'size': 19}, bbox_to_anchor=legend_loc)
+    leg = fig.legend(handles, labels, loc='center', prop={'size': 19}, bbox_to_anchor=legend_loc, ncol=2)
     if to_save is not None:
         plt.savefig(to_save + '.jpg')
         plt.savefig(to_save + '.pdf')
