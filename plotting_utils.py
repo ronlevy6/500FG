@@ -69,7 +69,7 @@ def plot_states_scatter_subplots(title, lst_of_states_df_with_names, patients_to
         if progress_print:
             print(name)
         if patients_to_use is not None:
-            df_to_use = df_to_use[patients_to_use]
+            df_to_use = df_to_use[set(patients_to_use)&set(df_to_use.columns)]
         df_to_use = df_to_use.transpose().merge(patient_data, left_index=True, right_index=True)
         for tissue_idx, sub_tissue in enumerate(sorted(sub_tissues_to_use)):
             curr_row = tissue_idx
