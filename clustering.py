@@ -27,8 +27,10 @@ def dist(v1, v2, min_vals_pct=0.4, penalty=10):
 
 
 def clustermap_with_color(states_df, idx_to_plot, patient_data, color_col, title=None, min_vals_pct=0.4,
-                          palette='bwr', to_save=None):
+                          palette='bwr', to_save=None, col_cluster=True):
     tissues_data = list(states_df.index)
+    if len(tissues_data) == 1:
+        col_cluster = False
     df_to_clustermap = states_df.transpose().merge(patient_data, left_index=True, right_index=True)
     color_data = df_to_clustermap[color_col]
 
@@ -38,7 +40,7 @@ def clustermap_with_color(states_df, idx_to_plot, patient_data, color_col, title
     if len(set(network_colors.values)) == 1:
         network_colors = None
     g = sns.clustermap(df_to_clustermap[tissues_data].applymap(lambda x: by_idx(x, idx_to_plot)),
-                       metric=lambda u, v: dist(u, v, min_vals_pct),
+                       metric=lambda u, v: dist(u, v, min_vals_pct), col_cluster=col_cluster,
                        figsize=(15, 10), method='complete', row_colors=network_colors)
     if title is not None:
         g.fig.suptitle(title, fontsize=20)
