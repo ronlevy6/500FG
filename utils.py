@@ -122,3 +122,14 @@ def fix_text(legend, entry_len=3):
             entry.set_text(round(ftxt, entry_len))
         except ValueError:
             continue
+
+
+def assign_age_group(val):
+    if val in ['50-59', '40-49']:
+        return '40-60'
+    elif val in ['60-69', '70-79']:
+        return 'Above 60'
+    elif val in ['30-39', '20-29']:
+        return 'Below 40'
+    else:
+        raise
