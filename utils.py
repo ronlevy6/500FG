@@ -87,6 +87,12 @@ def make_pretty(val):
         return val
 
 
+def print_pretty(txt):
+    splitted = txt.split(' ')
+    mid = len(splitted)//2
+    return ''.join(splitted[:mid]) + '\n' + ''.join(splitted[mid:])
+
+
 def by_idx(val, idx):
     """
     return val[idx] in case val is not None
