@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def plot_df(df, x, y, to_filter, index_filter_vals=None, title=None, to_color=True, colors=None):
+def plot_df(df, x, y, to_filter=False, index_filter_vals=None, title=None, to_color=True, colors=None):
     """
     plots scatter of dataframe with optional coloring
     """

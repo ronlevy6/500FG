@@ -47,8 +47,8 @@ def calc_states(tissue_dict, pca_df, fit_to_500FG=True, to_filter=None):
     return states_by_all
 
 
-def calc_states_combined(tissue_dict, pca_df, fit_to_500FG=True, to_filter=None):
-    pca_df = pca_df[['pc1','pc2']]
+def calc_states_combined(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='name', fit_to_500FG=True, to_filter=None):
+    pca_df = pca_df[[x_col, y_col]]
     states_by_all = dict()
     for tissue in tissue_dict:
         for sub_tissue in tissue_dict[tissue]:
@@ -59,7 +59,7 @@ def calc_states_combined(tissue_dict, pca_df, fit_to_500FG=True, to_filter=None)
                 df = fit_GE_to_500fg(df, pca_df.index)
 
             # curr_pca_df=pca_df[pca_df.index.isin(df.index.get_level_values('name'))]
-            curr_pca_df = pca_df.loc[df.index.get_level_values('name')].dropna()
+            curr_pca_df = pca_df.loc[df.index.get_level_values(ge_index_col)].dropna()
 
             for ind in df.columns:
                 y = df[ind]
@@ -67,5 +67,5 @@ def calc_states_combined(tissue_dict, pca_df, fit_to_500FG=True, to_filter=None)
                 assert model.intercept_ is None or model.intercept_ == 0
                 if ind not in states_by_all:
                     states_by_all[ind] = dict()
-                states_by_all[ind][sub_tissue] = (model.coef_[0],model.coef_[1])
+                states_by_all[ind][sub_tissue] = (model.coef_[0], model.coef_[1])
     return states_by_all
