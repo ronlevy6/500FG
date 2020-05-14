@@ -21,6 +21,10 @@ def get_angle_in_circle(x, y, x0, y0):
     return angle
 
 
+def apply_angle(df, x_col, y_col, x0, y0,):
+    return df.apply(lambda row: get_angle_in_circle(row[x_col], row[y_col], x0, y0), axis=1)
+
+
 def get_amit_anchors():
     with open('/export/home/ronlevy/projects/500FG_GTEx/amits_anchors_genes/selectedGenesForLupus.txt') as f:
         amits_filtered_data = f.readlines()

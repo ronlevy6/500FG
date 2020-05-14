@@ -18,9 +18,10 @@ def calc_row_col_dist(arr_2d, node_idx, k=50, with_distance=False,axis=0):
         return [x[0] for x in idx_dist_lst[:k]]
 
 
-def calc_dist_in_df(df, by_idx=True, k=50, with_distance=False, executor=None, tmp_dir=None):
+def calc_dist_in_df(df, by_idx=True, k=None, with_distance=False, executor=None, tmp_dir=None):
     tmp = None
     arr_2d = df.to_numpy()
+
 
     if executor is not None:
         assert tmp_dir is not None
@@ -31,9 +32,13 @@ def calc_dist_in_df(df, by_idx=True, k=50, with_distance=False, executor=None, t
 
     dist_lsts = dict()
     if by_idx:
+        if k is None:
+            k = df.shape[0]
         vals_to_check = df.index
         axis=1
     else:
+        if k is None:
+            k = df.shape[1]
         vals_to_check = df.columns
         axis=0
     for idx, val in tqdm(enumerate(vals_to_check)):
