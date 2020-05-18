@@ -2,13 +2,14 @@ import uuid
 import os
 import math
 import pandas as pd
+import numpy as np
 
 
-def create_tmp_file(dir, suffix=None):
+def create_tmp_file(curr_dir, suffix=None):
     filename = str(uuid.uuid4())
     if suffix is not None:
         filename += '.{}'.format(suffix)
-    return os.path.join(dir, filename)
+    return os.path.join(curr_dir, filename)
 
 
 # center - x0,y0
@@ -23,6 +24,16 @@ def get_angle_in_circle(x, y, x0, y0):
 
 def apply_angle(df, x_col, y_col, x0, y0,):
     return df.apply(lambda row: get_angle_in_circle(row[x_col], row[y_col], x0, y0), axis=1)
+
+
+def find_center_sensitive(space_df, x_col, y_col, num_of_values_to_use=20):
+    res = []
+    for col in [x_col, y_col]:
+        min_point = np.mean(sorted(space_df[col])[:num_of_values_to_use])
+        max_point = np.mean(sorted(space_df[col], reverse=True)[:num_of_values_to_use])
+        val = max_point + min_point
+        res.append(val/2)
+    return res
 
 
 def get_amit_anchors():
@@ -143,3 +154,10 @@ def assign_age_group(val):
         return 'Below 40'
     else:
         raise
+
+
+def dedup_space_df(space_df, subset_cols=None):
+    idx_name = space_df.index.name
+    if idx_name is None:
+        idx_name = 'index'
+    return space_df.reset_index().drop_duplicates(subset=subset_cols).set_index(idx_name)
