@@ -3,6 +3,7 @@ import os
 import math
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 
 def create_tmp_file(curr_dir, suffix=None):
@@ -10,6 +11,14 @@ def create_tmp_file(curr_dir, suffix=None):
     if suffix is not None:
         filename += '.{}'.format(suffix)
     return os.path.join(curr_dir, filename)
+
+
+def fix_directory(main_dir, sub_dir):
+    assert os.path.isdir(main_dir)
+    date_dir = datetime.today().strftime('%d_%m_%Y')
+    full_dirpath = os.path.join(main_dir, date_dir, sub_dir)
+    os.makedirs(full_dirpath, exist_ok=True)
+    return full_dirpath
 
 
 # center - x0,y0
