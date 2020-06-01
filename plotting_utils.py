@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+from data_manipulation import filter_patient_df
 
 def plot_df(df, x, y, to_filter=False, index_filter_vals=None, title=None, to_color=True, colors=None):
     """
@@ -54,23 +54,27 @@ def smart_print(is_mean, is_std, is_max, is_builtin, to_filter, evr):
     print(to_print)
 
 
-def plot_states_scatter_subplots(title, lst_of_states_df_with_names, patients_to_use, sub_tissues_to_use, patient_data,
+def plot_states_scatter_subplots(main_title, input_data, patients_to_use, sub_tissues_to_use, patient_data,
                                   hue, hue_order, figsize=(25, 35), to_save=None, legend_loc=(0.4, 0.8),
                                   progress_print=False, to_show=True, title_fontsize=28, ylabel_fontsize=14):
     """
     plots multiple scatter plots for states. Each state_df consists of tuples when data available, else empty (None)
     lst_of_states_df_with_names - list of tuples [(name, states_df),..]
     current sizes and locations fit 4 columns X 7 rows
+
+    input_data - [(column title1, appropriate states df to use (normal/anchor/smoothen..), filtering condition dict1),
+                 (column title2, df2, filtering_dict2)..]
     """
-    fig, axs = plt.subplots(nrows=len(sub_tissues_to_use), ncols=len(lst_of_states_df_with_names), figsize=figsize,
+    fig, axs = plt.subplots(nrows=len(sub_tissues_to_use), ncols=len(input_data), figsize=figsize,
                             gridspec_kw={'hspace': 0.5}, sharex=True, sharey=True)
-    fig.suptitle(title, fontsize=50)
-    for idx, (name, df_to_use) in enumerate(lst_of_states_df_with_names):
+    fig.suptitle(main_title, fontsize=50)
+    for idx, (name, states_df, filtering_dict) in enumerate(input_data):
+        df_to_use = filter_patient_df(patient_data, filtering_dict)
         if progress_print:
             print(name)
         if patients_to_use is not None:
-            df_to_use = df_to_use[set(patients_to_use)&set(df_to_use.columns)]
-        df_to_use = df_to_use.transpose().merge(patient_data, left_index=True, right_index=True)
+            states_df = states_df[set(patients_to_use) & set(states_df.columns)]
+        df_to_use = states_df.transpose().merge(df_to_use, left_index=True, right_index=True)
         for tissue_idx, sub_tissue in enumerate(sorted(sub_tissues_to_use)):
             curr_row = tissue_idx
             curr_col = idx

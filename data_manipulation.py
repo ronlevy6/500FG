@@ -110,3 +110,19 @@ def get_anchors(space_df, x_col, y_col, center_x, center_y, number_of_sections=1
         anchor_genes_idx += curr_df.head(n=int(curr_df.shape[0] * anchor_pct_of_data))['overall_idx'].to_list()
 
     return center_genes_idx, anchor_genes_idx
+
+
+def filter_patient_df(patient_df, filtering_dict, verbose=False):
+    """
+    :param patient_df: has the columns SEX, AGE, DTHHRDY, sex_name, death_reason, and maybe cardiac, cerebrovascular
+    :param filtering_dict: key is column in patient_df. value is tuple
+    :return:
+    """
+    filtered_df = patient_df.copy()
+    for col, values in filtering_dict.items():
+        if col not in patient_df.columns:
+            if verbose:
+                print("{} Doesen't exist in DF".format(col))
+            continue
+        filtered_df = filtered_df[filtered_df[col].isin(values)]
+    return filtered_df
