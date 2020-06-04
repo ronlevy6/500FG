@@ -4,16 +4,7 @@ from numpy.linalg import lstsq
 from collections import Counter
 from sklearn.linear_model import LinearRegression
 
-
-def fit_GE_to_500fg(ge_df, fg500_genes):
-    ge_df.set_index(pd.MultiIndex.from_tuples(ge_df.index, names=('symbol', 'name')), inplace=True)
-    ge_df = ge_df[ge_df.index.get_level_values('name').isin(fg500_genes)]  # take from GE only genes in PCA
-    many_times = [x[0] for x in Counter(ge_df.index.get_level_values('name')).items() if x[1] > 1]
-    for gene in many_times:
-        med = ge_df[ge_df.index.get_level_values('name') == gene].median(axis=1)
-        to_del = med.sort_values().index[0]
-        ge_df.drop(to_del, inplace=True)
-    return ge_df
+from data_manipulation import fit_GE_to_500fg
 
 
 def calc_states(tissue_dict, pca_df, fit_to_500FG=True, to_filter=None):

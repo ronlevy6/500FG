@@ -1,9 +1,12 @@
+from collections import Counter
+
 import numpy as np
 from tqdm import tqdm
 import pickle
 import pandas as pd
 
-from utils import create_tmp_file, rename_patient_name, apply_angle
+from misc_utils import create_tmp_file
+from utils import apply_angle, rename_patient_name
 
 
 def calc_row_col_dist(arr_2d, node_idx, k=50, with_distance=False,axis=0):
@@ -126,3 +129,24 @@ def filter_patient_df(patient_df, filtering_dict, verbose=False):
             continue
         filtered_df = filtered_df[filtered_df[col].isin(values)]
     return filtered_df
+
+
+def find_center_sensitive(space_df, x_col, y_col, num_of_values_to_use=20):
+    res = []
+    for col in [x_col, y_col]:
+        min_point = np.mean(sorted(space_df[col])[:num_of_values_to_use])
+        max_point = np.mean(sorted(space_df[col], reverse=True)[:num_of_values_to_use])
+        val = max_point + min_point
+        res.append(val/2)
+    return res
+
+
+def fit_GE_to_500fg(ge_df, fg500_genes):
+    ge_df.set_index(pd.MultiIndex.from_tuples(ge_df.index, names=('symbol', 'name')), inplace=True)
+    ge_df = ge_df[ge_df.index.get_level_values('name').isin(fg500_genes)]  # take from GE only genes in PCA
+    many_times = [x[0] for x in Counter(ge_df.index.get_level_values('name')).items() if x[1] > 1]
+    for gene in many_times:
+        med = ge_df[ge_df.index.get_level_values('name') == gene].median(axis=1)
+        to_del = med.sort_values().index[0]
+        ge_df.drop(to_del, inplace=True)
+    return ge_df

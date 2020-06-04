@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from utils import by_idx
 
+
 def dist(v1, v2, min_vals_pct=0.4, penalty=10):
     """
     calculate euclidean distance between vectors containing NaNs based on shared values only
