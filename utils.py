@@ -111,10 +111,30 @@ def make_pretty(val):
         return val
 
 
-def print_pretty(txt):
+def print_pretty_old(txt):
     splitted = txt.split(' ')
     mid = len(splitted)//2
-    return ''.join(splitted[:mid]) + '\n' + ''.join(splitted[mid:])
+    return ' '.join(splitted[:mid]) + '\n' + ' '.join(splitted[mid:])
+
+
+def print_pretty(txt, line_const=0.55):
+    in_s1 = True
+    total_len = len(txt)
+    s1 = ''
+    s2 = ''
+    splitted = txt.split(' ')
+    if len(splitted) == 3 and splitted[1] == '-':
+        return ''.join(splitted[:2]) + '\n' + ''.join(splitted[2:])
+    for word in splitted:
+        if in_s1 and len(s1) < total_len / 2 and (len(s1) + len(word)) < total_len * line_const:
+            s1 += ' {}'.format(word)
+        else:
+            in_s1 = False
+            s2 += ' {}'.format(word)
+    s1 = s1.replace(' - ', '-')
+    s2 = s2.replace(' - ', '-')
+    final_str = s1.strip() + '\n' + s2.strip()
+    return final_str.strip()
 
 
 def by_idx(val, idx):
