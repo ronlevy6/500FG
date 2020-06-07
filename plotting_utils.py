@@ -1,6 +1,9 @@
+import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 from data_manipulation import filter_patient_df
+from misc_utils import undo_print_pretty, fix_text
+
 
 def plot_df(df, x, y, to_filter=False, index_filter_vals=None, title=None, to_color=False, colors=None):
     """
@@ -105,3 +108,117 @@ def plot_states_scatter_subplots(main_title, input_data, patients_to_use, sub_ti
         plt.show()
     plt.close()
     return fig, axs, leg
+
+
+def fix_labels_of_pca_map_plots(g, by_ind, obj_to_plot, col_to_state_dfs_d, num_of_cols, patient_data, colorbar_mode):
+    for i, ax in enumerate(g.axes.flatten()):
+        title, state_df_to_use = col_to_state_dfs_d[i % num_of_cols]
+        if by_ind:
+            s1, s2 = state_df_to_use[obj_to_plot][undo_print_pretty(g.row_names[i // num_of_cols])]
+        else:  # by tissue
+            if len(ax.texts):  # add more detailed patient data
+                curr_txt = ax.texts[1]
+                age, sex = patient_data.loc[curr_txt.get_text()][['AGE', 'sex_name']].values
+                ax.text(curr_txt.get_unitless_position()[0] + 0.25, curr_txt.get_unitless_position()[1] - 0.7,
+                        s='{}:\n {},{}'.format(curr_txt.get_text(), age, sex), rotation=-90)
+                ax.texts[1].remove()
+            curr_ind = g.row_names[i // 4]
+            s1, s2 = state_df_to_use[curr_ind][obj_to_plot]
+
+        if i < num_of_cols:
+            header = title + '\n'
+        else:
+            header = ''
+        ax.set_title("{}{} {}".format(header, round(s1, 5), round(s2, 5)))
+
+        if not colorbar_mode:
+            if i % num_of_cols != num_of_cols - 1:  # rightmost column - different legend
+                leg = ax.legend(loc='center right', bbox_to_anchor=(1.72, 0.61))
+            else:
+                leg = ax.legend(loc='center right', bbox_to_anchor=(2, 0.61))
+            fix_text(leg)
+
+
+def handle_suptitle_and_saving(g, by_ind, obj_to_plot, patient_data, to_save, save_pdf, to_show, colorbar_mode):
+    # main title
+    if by_ind:
+        age, sex, death = patient_data.loc[obj_to_plot][['AGE', 'sex_name', 'death_reason']].values
+        g.fig.suptitle("\n{} - {}, {}\n{}".format(obj_to_plot, sex, age, death), y=0.89)
+    else:
+        g.fig.suptitle("\n{}".format(obj_to_plot), y=0.9)
+    # saving
+    if to_save is not None:
+        if colorbar_mode:
+            full_path = os.path.join(to_save, '{}_GE_map_colorbar'.format(obj_to_plot))
+        else:
+            full_path = os.path.join(to_save, '{}_GE_map'.format(obj_to_plot))
+        plt.savefig('{}.jpg'.format(full_path), bbox_inches='tight')
+        if save_pdf:
+            plt.savefig('{}.pdf'.format(full_path), bbox_inches='tight')
+    if to_show:
+        plt.show()
+    plt.close()
+
+
+def plot_ge_on_pca_space(stacked_df_ready_to_plot, by_ind, objs_to_plot, filter_col, grid_row, grid_col,
+                         scatter_x_col, scatter_y_col, scatter_hue_col, col_to_state_dfs_d, patient_data,
+                         gridspec_kws={"wspace": 0.7, "hspace": 0.5}, margin_titles=True,
+                         sharex=True, sharey=True, to_show=True, to_save=None, save_pdf=False, palette='bwr'
+                         ):
+    """
+    by_ind - Boolean. When False the plot is by tissue
+    objs_to_plot - list of tissues/patients to plot
+    to_save - if None, not saving, else to_save is a directory in which we save
+    """
+    for obj_to_plot in objs_to_plot:
+        curr_plotabble = stacked_df_ready_to_plot[stacked_df_ready_to_plot[filter_col] == obj_to_plot]
+        g = sns.FacetGrid(curr_plotabble, row=grid_row, col=grid_col, gridspec_kws=gridspec_kws,
+                          margin_titles=margin_titles, sharex=sharex, sharey=sharey)
+        g = g.map(sns.scatterplot, scatter_x_col, scatter_y_col, scatter_hue_col, edgecolor=None, lw=0, palette=palette)
+        num_of_cols = len(g.col_names)
+
+        # Fix the titles and labels in the grid
+        [plt.setp(ax.texts, text="") for ax in g.axes.flat]  # remove the original texts
+        g.set_titles(row_template='{row_name}', col_template='{col_name}')
+
+        fix_labels_of_pca_map_plots(g, by_ind, obj_to_plot, col_to_state_dfs_d, num_of_cols,
+                                    patient_data, colorbar_mode=False)
+        handle_suptitle_and_saving(g, by_ind, obj_to_plot, patient_data, to_save, save_pdf, to_show, colorbar_mode=False)
+
+
+def facet_scatter(x, y, c, **kwargs):
+    # helper for plot_ge_on_pca_space_one_colorbar to workaround the params collision
+    """Draw scatterplot with point colors from a faceted DataFrame columns."""
+    kwargs.pop("color")
+    plt.scatter(x, y, c=c, **kwargs)
+
+
+def plot_ge_on_pca_space_one_colorbar(stacked_df_ready_to_plot, by_ind, objs_to_plot, filter_col, grid_row, grid_col,
+                                      scatter_x_col, scatter_y_col, scatter_hue_col, col_to_state_dfs_d, patient_data,
+                                      vmin=-7, vmax=7, gridspec_kws={"wspace": 0.7, "hspace": 0.5}, margin_titles=True,
+                                      sharex=True, sharey=True, to_show=True, to_save=None, save_pdf=False,
+                                      palette='bwr'
+                                      ):
+    for obj_to_plot in objs_to_plot:
+        curr_plotabble = stacked_df_ready_to_plot[stacked_df_ready_to_plot[filter_col] == obj_to_plot]
+        g = sns.FacetGrid(curr_plotabble, row=grid_row, col=grid_col, gridspec_kws=gridspec_kws,
+                          margin_titles=margin_titles, sharex=sharex, sharey=sharey)
+        g = g.map(facet_scatter, scatter_x_col, scatter_y_col, scatter_hue_col, edgecolor=None, linewidths=0,
+                  cmap=palette, vmin=vmin, vmax=vmax)
+
+        num_of_cols = len(g.col_names)
+
+        # Fix the titles and labels in the grid
+        [plt.setp(ax.texts, text="") for ax in g.axes.flat]  # remove the original texts
+        g.set_titles(row_template='{row_name}', col_template='{col_name}')
+
+        # enter one colorbar for all subfigures
+        g.fig.subplots_adjust(right=.97)
+        cax = g.fig.add_axes([1., .25, .02, .6])  # Define a new Axes where the colorbar will go
+        points = plt.scatter([], [], c=[], vmin=vmin, vmax=vmax,
+                             cmap=palette)  # Get a mappable object with the same colormap
+        g.fig.colorbar(points, cax=cax)  # Draw the colorbar
+
+        fix_labels_of_pca_map_plots(g, by_ind, obj_to_plot, col_to_state_dfs_d, num_of_cols,
+                                    patient_data, colorbar_mode=True)
+        handle_suptitle_and_saving(g, by_ind, obj_to_plot, patient_data, to_save, save_pdf, to_show, colorbar_mode=True)

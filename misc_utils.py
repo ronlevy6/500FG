@@ -52,18 +52,18 @@ def drop_na_by_pct(df, axis, pct_of_not_nulls=0.5, to_print=False):
     return ret_df
 
 
-def make_pretty(val):
-    """
-    fit sub tissue value into subplots spacing..
-    """
-    sp = val.split(" ")
-    if len(sp) == 1:
-        return val
-    elif len(sp) >= 3:
-        return sp[0] + ' ' + sp[2][:10]
-    else:
-        return val
-
+# def make_pretty(val):
+#     """
+#     fit sub tissue value into subplots spacing..
+#     """
+#     sp = val.split(" ")
+#     if len(sp) == 1:
+#         return val
+#     elif len(sp) >= 3:
+#         return sp[0] + ' ' + sp[2][:10]
+#     else:
+#         return val
+#
 
 def print_pretty_old(txt):
     splitted = txt.split(' ')
@@ -91,6 +91,10 @@ def print_pretty(txt, line_const=0.55):
     return final_str.strip()
 
 
+def undo_print_pretty(txt):
+    return txt.replace('-', ' - ', 1).replace('\n', ' ').replace('  ', ' ')
+
+
 def fix_values_specific(val, min_val=-7, max_val=7):
     """
     changes boundaries of value to fit limits (prevent tail..)
@@ -114,10 +118,3 @@ def fix_text(legend, entry_len=3):
             entry.set_text(round(ftxt, entry_len))
         except ValueError:
             continue
-
-
-def dedup_space_df(space_df, subset_cols=None):
-    idx_name = space_df.index.name
-    if idx_name is None:
-        idx_name = 'index'
-    return space_df.reset_index().drop_duplicates(subset=subset_cols).set_index(idx_name)

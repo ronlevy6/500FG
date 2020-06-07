@@ -1,5 +1,7 @@
 import math
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 # center - x0,y0
@@ -57,3 +59,61 @@ def assign_age_group(val):
         return 'Below 40'
     else:
         raise
+
+
+def dedup_space_df(space_df, subset_cols=None):
+    idx_name = space_df.index.name
+    if idx_name is None:
+        idx_name = 'index'
+    return space_df.reset_index().drop_duplicates(subset=subset_cols).set_index(idx_name)
+
+
+def compare_state_dfs(df1, df2, verbose=False, round_dig=5):
+    # the fillna is to be able to compare nans
+    lst = []
+    for idx in [0, 1]:
+        df1_fixed = df1.applymap(lambda val: by_idx(val, idx)).fillna(666).applymap(lambda val: round(val, round_dig))
+        df2_fixed = df2.applymap(lambda val: by_idx(val, idx)).fillna(666).applymap(lambda val: round(val, round_dig))
+        df1_fixed.sort_index(inplace=True)
+        df2_fixed.sort_index(inplace=True)
+        df2_fixed = df2_fixed[list(df1_fixed.columns)]
+        lst.append(df1_fixed.equals(df2_fixed))
+        if verbose:
+            print("Compared idx-{}".format(idx + 1))
+    return lst
+
+
+def correlate_between_dfs(df1, df2, verbose=True, min_periods=25):
+    res_d = dict()
+    for idx in [0, 1]:
+        res_d[idx] = dict()
+        df1_fixed = df1.applymap(lambda val: by_idx(val, idx)).sort_index()
+        df2_fixed = df2.applymap(lambda val: by_idx(val, idx)).sort_index()
+        df2_fixed = df2_fixed[list(df1_fixed.columns)]
+        corrs_col = dict()
+        for col in df1_fixed.columns:
+            res = df1_fixed[col].corr(df2_fixed[col], min_periods=min_periods)
+            if pd.notna(res):
+                corrs_col[col] = res
+
+        if verbose:
+            vals = list(corrs_col.values())
+            plt.hist(corrs_col.values())
+            plt.title("mean: {}, std {}".format(np.mean(vals), np.std(vals)))
+            plt.show()
+            plt.close()
+        corrs_idx = dict()
+        for index in df1_fixed.index:
+            res = df1_fixed.loc[index].corr(df2_fixed.loc[index], min_periods=min_periods)
+            if pd.notna(res):
+                corrs_idx[index] = res
+
+        if verbose:
+            vals = list(corrs_idx.values())
+            plt.hist(corrs_idx.values())
+            plt.title("mean: {}, std {}".format(np.mean(vals), np.std(vals)))
+            plt.show()
+            plt.close()
+        res_d[idx]['col'] = corrs_col
+        res_d[idx]['idx'] = corrs_idx
+    return res_d

@@ -150,3 +150,71 @@ def fit_GE_to_500fg(ge_df, fg500_genes):
         to_del = med.sort_values().index[0]
         ge_df.drop(to_del, inplace=True)
     return ge_df
+
+
+def make_ordered_d(d):
+    """
+    return keys sorted by values
+    """
+    ret_d = {k: loc for loc,(k,v) in enumerate(sorted(d.items(),key=lambda x:x[1]))}
+    return {k: loc/len(ret_d) for k,loc in ret_d.items()}
+
+
+def make_as_pct(df, ind):
+    """
+    per ind - change values to pct when lowest is 0 and hightest is 1
+    """
+    curr_order = make_ordered_d(df[ind].dropna().to_dict())
+    df[ind] = df.index.map(curr_order)
+
+
+def stack_per_ind(d, sub_tissue, ind, condition, is_anchor, anchor_genes, ge_index_name='name',
+                                col_to_stack_by='GE', to_pct=False, ):
+    df = None
+    for tissue in d:
+        if sub_tissue in d[tissue]:
+            df = pd.DataFrame(d[tissue][sub_tissue][ind])
+    assert df is not None
+    if to_pct:
+        make_as_pct(df, ind)
+    if is_anchor:
+        df = df[df.index.get_level_values(ge_index_name).isin(anchor_genes)]
+    stacked = pd.DataFrame(df.stack(), columns=[col_to_stack_by])
+    stacked['sub'] = '{}'.format(sub_tissue)
+    stacked['condition'] = condition
+    return stacked
+
+
+def stack_GE_dict_for_map_plots(patients, ge_data, smoothen_ge_data, anchor_genes, condition_dict, sub_tissues_to_use=None):
+    all_sub_tissues = []
+    for v in ge_data.values():
+        # nested dict
+        for sub_tissue in v.keys():
+            all_sub_tissues.append(sub_tissue)
+    curr_df_by_ind = dict()
+    for ind in tqdm(patients):
+        curr_df = None
+        for sub_tissue in all_sub_tissues:
+            if sub_tissues_to_use is not None and sub_tissue not in sub_tissues_to_use:
+                continue
+            for condition_name, params in condition_dict.items():
+                is_anchor = params.get('is_anchor', False)
+                to_pct = params.get('to_pct', False)
+                ge_index_name = params.get('ge_index_name', 'name')
+                col_to_stack_by = params.get('col_to_stack_by', 'GE')
+
+                if params['ge_type'] == 'normal':
+                    ge_dict_to_use = ge_data
+                elif params['ge_type'] == 'smoothen':
+                    ge_dict_to_use = smoothen_ge_data
+                else:
+                    raise ValueError("Unknown type of ge_type")
+                stacked = stack_per_ind(ge_dict_to_use, sub_tissue, ind, condition=condition_name,
+                                        is_anchor=is_anchor, to_pct=to_pct, ge_index_name=ge_index_name,
+                                        col_to_stack_by=col_to_stack_by, anchor_genes=anchor_genes)
+                if curr_df is None:
+                    curr_df = stacked
+                else:
+                    curr_df = curr_df.append(stacked)
+        curr_df_by_ind[ind] = curr_df
+    return curr_df_by_ind
