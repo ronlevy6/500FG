@@ -1,8 +1,10 @@
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
+import itertools
 from data_manipulation import filter_patient_df
-from misc_utils import undo_print_pretty, fix_text
+from misc_utils import undo_print_pretty, fix_text, print_pretty
 
 
 def plot_df(df, x, y, to_filter=False, index_filter_vals=None, title=None, to_color=False, colors=None):
@@ -222,3 +224,55 @@ def plot_ge_on_pca_space_one_colorbar(stacked_df_ready_to_plot, by_ind, objs_to_
         fix_labels_of_pca_map_plots(g, by_ind, obj_to_plot, col_to_state_dfs_d, num_of_cols,
                                     patient_data, colorbar_mode=True)
         handle_suptitle_and_saving(g, by_ind, obj_to_plot, patient_data, to_save, save_pdf, to_show, colorbar_mode=True)
+
+
+def plot_missing_data(data, title, figsize=(12,8), to_save=None, to_show=True):
+    plt.figure(figsize=figsize)
+    sns.heatmap(data.applymap(lambda x: pd.notna(x)))
+    plt.title("Missing data - {}".format(title), fontsize =20)
+    plt.tight_layout()
+    if to_save is not None:
+        plt.savefig(os.path.join(to_save, "Missing data - {}.jpg".format(title)))
+        plt.savefig(os.path.join(to_save, "Missing data - {}.pdf".format(title)))
+    if to_show:
+        plt.show()
+
+
+def subplots_of_correlation(d, tissues_tup, bootstarp_mode, groups=None, figsize=(16, 16), to_save=None, to_show=None):
+    col_tissues, row_tissues = tissues_tup
+    # sharey only at correlation
+    fig, axs = plt.subplots(nrows=len(row_tissues), ncols=len(col_tissues), figsize=figsize, sharey=not bootstarp_mode)
+    for t1, t2 in itertools.product(row_tissues, col_tissues):
+        curr_ax = axs[row_tissues.index(t1), col_tissues.index(t2)]
+        if bootstarp_mode:
+            if t1 == t2:
+                corr_vals = []
+            else:
+                try:
+                    corr_vals = [v[0] for v in d[tuple(sorted([t1, t2]))]]
+                except KeyError:
+                    corr_vals = []
+            curr_ax.boxplot(corr_vals, medianprops=dict(color='black'), patch_artist=True,
+                            boxprops=dict(facecolor="lightblue"))
+        else:
+            if isinstance(d[tuple(sorted([t1, t2]))], dict):
+                corr_vals = sorted(d[tuple(sorted([t1, t2]))].values())
+            else:
+                corr_vals = sorted(d[tuple(sorted([t1, t2]))])
+            curr_ax.plot(corr_vals, marker='o', label=len(corr_vals))
+            curr_ax.legend()
+
+        curr_ax.set_ylim(-1, 1)
+        curr_ax.axhline(y=0, color='black', linestyle='--', lw=1)
+
+    for i in range(len(row_tissues)):
+        axs[0, i].title.set_text(print_pretty(row_tissues[i]))
+    for i in range(len(col_tissues)):
+        axs[i, 0].set_ylabel(print_pretty(col_tissues[i]), rotation=90)
+    if to_save or to_show:
+        fig.tight_layout()
+    if to_save:
+        fig.savefig(to_save)
+    if to_show:
+        plt.show()
+    plt.close()

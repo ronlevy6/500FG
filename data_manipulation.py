@@ -1,11 +1,12 @@
 from collections import Counter
-
+import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 from tqdm import tqdm
 import pickle
 import pandas as pd
 
-from misc_utils import create_tmp_file
+from misc_utils import create_tmp_file, chunks
 from utils import apply_angle, rename_patient_name
 
 
@@ -218,3 +219,99 @@ def stack_GE_dict_for_map_plots(patients, ge_data, smoothen_ge_data, anchor_gene
                     curr_df = curr_df.append(stacked)
         curr_df_by_ind[ind] = curr_df
     return curr_df_by_ind
+
+
+def bootstrap(d, iter_num=50, bootstrap_pct=0.8, min_vals=10):
+    # the keys of d is two tissues
+    not_enough = 0
+    bootstrap_res = dict()
+    for k, val in tqdm(d.items()):
+        if k[0] == k[1]:
+            continue
+        # Fit case of nested dict
+        if isinstance(val, dict):
+            curr_lst = list(val.values())
+        else:
+            curr_lst = list(val)
+        if len(curr_lst) < min_vals:
+            not_enough += 1
+            continue
+        for i in range(iter_num):
+            np.random.shuffle(curr_lst)
+            lst_to_use = curr_lst[:int(len(curr_lst)*bootstrap_pct)]
+            bootstrap_res.setdefault(k, list()).append((np.mean(lst_to_use), np.std(lst_to_use)))
+    return bootstrap_res, not_enough
+
+
+def var_analysis_tmp_df(x_data, y_data, min_num_of_points, x_label, y_label, fill_missing_vals=False):
+    tmp_x = x_data.dropna(thresh=min_num_of_points, axis=0).var(axis=1).sort_index()
+    tmp_y = y_data.dropna(thresh=min_num_of_points, axis=0).var(axis=1).sort_index()
+    if list(tmp_x.index) != list(tmp_y.index):
+        if fill_missing_vals:
+            # one side
+            missing_idx = set(tmp_y.index) - set(tmp_x.index)
+            tmp_x = tmp_x.append(pd.Series(index=missing_idx, data=[0] * len(missing_idx)))
+            # other side
+            missing_idx = set(tmp_x.index) - set(tmp_y.index)
+            tmp_y = tmp_y.append(pd.Series(index=missing_idx, data=[0] * len(missing_idx)))
+        else:
+            shared = set(tmp_x.index) & set(tmp_y.index)
+            tmp_x = tmp_x.loc[shared]
+            tmp_y = tmp_y.loc[shared]
+    tmp_x.sort_index(inplace=True)
+    tmp_y.sort_index(inplace=True)
+    assert list(tmp_x.index) == list(tmp_y.index)
+    tmp_df = pd.DataFrame(data=[tmp_x.index, tmp_x.values, tmp_y.values]).transpose()
+    tmp_df.columns = ['tissue', x_label, y_label]
+    return tmp_df
+
+
+def var_analysis(x_data, y_data, patient_data, x_label='x', y_label='y', col_to_sort_by=None, chunk_size=10,
+                 min_num_of_points=10, title=None, fill_missing_vals=False, to_plot=True, to_save=None, to_show=True):
+    full_markers = ['o', '<', '>']
+    # Prepare the variance df
+    df_to_use = None
+    if col_to_sort_by is not None:
+        curr_markers = dict()
+        for idx, val in enumerate(patient_data[col_to_sort_by].unique()):
+            curr_markers[val] = full_markers[idx]
+
+        #         curr_markers = full_markers[:len(patient_data[col_to_sort_by].unique())]
+        for col_val in patient_data[col_to_sort_by].unique().tolist():
+            curr_patients = patient_data[patient_data[col_to_sort_by] == col_val].index.tolist()
+            tmp_df = var_analysis_tmp_df(x_data[curr_patients], y_data[curr_patients],
+                                         min_num_of_points, x_label, y_label, fill_missing_vals)
+            tmp_df[col_to_sort_by] = col_val
+
+            if df_to_use is None:
+                df_to_use = tmp_df
+            else:
+                df_to_use = df_to_use.append(tmp_df)
+    else:
+        df_to_use = var_analysis_tmp_df(x_data, y_data, min_num_of_points, x_label, y_label,
+                                        fill_missing_vals=fill_missing_vals)
+        df_to_use['col'] = 'all'
+
+    tissues = sorted(df_to_use['tissue'].unique())
+    max_x = df_to_use[x_label].max() * 1.2
+    max_y = df_to_use[y_label].max() * 1.2
+    if to_plot:
+        for chunk_idx, chunk in enumerate(chunks(tissues, chunk_size)):
+            curr_df_to_plot = df_to_use[df_to_use['tissue'].isin(chunk)]
+            if col_to_sort_by is None:
+                sns.scatterplot(data=curr_df_to_plot, x=x_label, y=y_label, hue='tissue')
+            else:
+                sns.scatterplot(data=curr_df_to_plot, x=x_label, y=y_label, hue='tissue', style=col_to_sort_by,
+                                markers=curr_markers, )
+
+            plt.xlim(0, max_x)
+            plt.ylim(0, max_y)
+            plt.legend(bbox_to_anchor=(1.1, 1.05))
+            if title is not None:
+                plt.title(title + ' chuck {}'.format(chunk_idx))
+            if to_save is not None:
+                plt.savefig(to_save + '_chunk {}.jpg'.format(chunk_idx), bbox_inches='tight')
+            if to_show:
+                plt.show()
+            plt.close()
+    return df_to_use
