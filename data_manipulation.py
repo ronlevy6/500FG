@@ -113,7 +113,12 @@ def get_anchors(space_df, x_col, y_col, center_x, center_y, number_of_sections=1
         curr_df.sort_values(by=['dist_from_center'], inplace=True, ascending=False)
         anchor_genes_idx += curr_df.head(n=int(curr_df.shape[0] * anchor_pct_of_data))['overall_idx'].to_list()
 
-    return center_genes_idx, anchor_genes_idx
+    # extract gene names
+    space_df_genes = list(space_df.index)
+    anchor_gene_names = [space_df_genes[idx] for idx in anchor_genes_idx]
+    center_gene_names = [space_df_genes[idx] for idx in center_genes_idx]
+
+    return center_genes_idx, center_gene_names, anchor_genes_idx, anchor_gene_names
 
 
 def filter_patient_df(patient_df, filtering_dict, verbose=False):
