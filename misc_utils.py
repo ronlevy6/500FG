@@ -19,12 +19,18 @@ def fix_directory(main_dir, sub_dir):
     return full_dirpath
 
 
-def chunks(obj, chunk_size=10):
+def chunks(obj, chunk_size=10, min_vals_in_chunk=1):
     """Yield successive n-sized chunks from lst."""
+    to_break = False
     for i in range(0, len(obj), chunk_size):
         max_i = min(len(obj), i+chunk_size)
+        if len(obj) - 1 - max_i < min_vals_in_chunk:
+            max_i = len(obj)
+            to_break = True
         # yield [obj[j] for j in range(i, max_i)]
         yield obj[i: max_i]
+        if to_break:
+            break
 
 
 def fix_str(val):
