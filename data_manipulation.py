@@ -179,7 +179,10 @@ def stack_per_ind(d, sub_tissue, ind, condition, is_anchor, anchor_genes, ge_ind
     df = None
     for tissue in d:
         if sub_tissue in d[tissue]:
-            df = pd.DataFrame(d[tissue][sub_tissue][ind])
+            try:
+                df = pd.DataFrame(d[tissue][sub_tissue][ind])
+            except KeyError:
+                return None
     assert df is not None
     if to_pct:
         make_as_pct(df, ind)
@@ -218,6 +221,8 @@ def stack_GE_dict_for_map_plots(patients, ge_data, smoothen_ge_data, anchor_gene
                 stacked = stack_per_ind(ge_dict_to_use, sub_tissue, ind, condition=condition_name,
                                         is_anchor=is_anchor, to_pct=to_pct, ge_index_name=ge_index_name,
                                         col_to_stack_by=col_to_stack_by, anchor_genes=anchor_genes)
+                if stacked is None:
+                    continue
                 if curr_df is None:
                     curr_df = stacked
                 else:
