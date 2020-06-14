@@ -121,8 +121,10 @@ def fix_labels_of_pca_map_plots(g, by_ind, obj_to_plot, col_to_state_dfs_d, num_
             if len(ax.texts):  # add more detailed patient data
                 curr_txt = ax.texts[1]
                 age, sex = patient_data.loc[curr_txt.get_text()][['AGE', 'sex_name']].values
-                ax.text(curr_txt.get_unitless_position()[0] + 0.25, curr_txt.get_unitless_position()[1] - 0.7,
-                        s='{}:\n {},{}'.format(curr_txt.get_text(), age, sex), rotation=-90)
+                new_txt = '{}:\n {},{}'.format(curr_txt.get_text(), age, sex)
+                plt.setp(ax.texts, text=new_txt, rotation=-90)
+                # ax.text(curr_txt.get_unitless_position()[0] + 0.25, curr_txt.get_unitless_position()[1] - 0.7,
+                #         s='{}:\n {},{}'.format(curr_txt.get_text(), age, sex), rotation=-90)
                 ax.texts[1].remove()
             curr_ind = g.row_names[i // 4]
             s1, s2 = state_df_to_use[curr_ind][obj_to_plot]
@@ -145,7 +147,7 @@ def handle_suptitle_and_saving(g, by_ind, obj_to_plot, patient_data, to_save, sa
     # main title
     if by_ind:
         age, sex, death = patient_data.loc[obj_to_plot][['AGE', 'sex_name', 'death_reason']].values
-        g.fig.suptitle("\n{} - {}, {}\n{}".format(obj_to_plot, sex, age, death), y=0.89)
+        g.fig.suptitle("\n{} - {}, {}\n{}".format(obj_to_plot, sex, age, death), y=0.9)
     else:
         g.fig.suptitle("\n{}".format(obj_to_plot), y=0.9)
     # saving
@@ -174,6 +176,7 @@ def plot_ge_on_pca_space(stacked_df_ready_to_plot, by_ind, objs_to_plot, filter_
     """
     for obj_to_plot in objs_to_plot:
         curr_plotabble = stacked_df_ready_to_plot[stacked_df_ready_to_plot[filter_col] == obj_to_plot]
+        curr_plotabble.sort_values(by=[grid_row], inplace=True)
         g = sns.FacetGrid(curr_plotabble, row=grid_row, col=grid_col, gridspec_kws=gridspec_kws,
                           margin_titles=margin_titles, sharex=sharex, sharey=sharey)
         g = g.map(sns.scatterplot, scatter_x_col, scatter_y_col, scatter_hue_col, edgecolor=None, lw=0, palette=palette)
@@ -203,6 +206,7 @@ def plot_ge_on_pca_space_one_colorbar(stacked_df_ready_to_plot, by_ind, objs_to_
                                       ):
     for obj_to_plot in objs_to_plot:
         curr_plotabble = stacked_df_ready_to_plot[stacked_df_ready_to_plot[filter_col] == obj_to_plot]
+        curr_plotabble.sort_values(by=[grid_row], inplace=True)
         g = sns.FacetGrid(curr_plotabble, row=grid_row, col=grid_col, gridspec_kws=gridspec_kws,
                           margin_titles=margin_titles, sharex=sharex, sharey=sharey)
         g = g.map(facet_scatter, scatter_x_col, scatter_y_col, scatter_hue_col, edgecolor=None, linewidths=0,
