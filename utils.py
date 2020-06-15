@@ -83,7 +83,8 @@ def compare_state_dfs(df1, df2, verbose=False, round_dig=5):
     return lst
 
 
-def correlate_between_dfs(df1, df2, verbose=True, min_periods=25):
+def correlate_between_dfs(df1, df2, verbose=True, title=None, col_label='column', idx_label='index',
+                          min_periods=25, hist_kwargs={}):
     res_d = dict()
     for idx in [0, 1]:
         res_d[idx] = dict()
@@ -91,29 +92,27 @@ def correlate_between_dfs(df1, df2, verbose=True, min_periods=25):
         df2_fixed = df2.applymap(lambda val: by_idx(val, idx)).sort_index()
         df2_fixed = df2_fixed[list(df1_fixed.columns)]
         corrs_col = dict()
+        corrs_idx = dict()
+
         for col in df1_fixed.columns:
             res = df1_fixed[col].corr(df2_fixed[col], min_periods=min_periods)
             if pd.notna(res):
                 corrs_col[col] = res
 
-        if verbose:
-            vals = list(corrs_col.values())
-            plt.hist(corrs_col.values())
-            plt.title("mean: {}, std {}".format(np.mean(vals), np.std(vals)))
-            plt.show()
-            plt.close()
-        corrs_idx = dict()
         for index in df1_fixed.index:
             res = df1_fixed.loc[index].corr(df2_fixed.loc[index], min_periods=min_periods)
             if pd.notna(res):
                 corrs_idx[index] = res
 
         if verbose:
-            vals = list(corrs_idx.values())
-            plt.hist(corrs_idx.values())
-            plt.title("mean: {}, std {}".format(np.mean(vals), np.std(vals)))
-            plt.show()
-            plt.close()
-        res_d[idx]['col'] = corrs_col
-        res_d[idx]['idx'] = corrs_idx
+            for dict_to_use, label in [(corrs_col, col_label), (corrs_idx, idx_label)]:
+                vals = list(dict_to_use.values())
+                plt.hist(vals, **hist_kwargs)
+                plt.title(
+                    "s{} By {}\n{}\nmean: {}, std: {}".format(idx + 1, label, title, np.mean(vals), np.std(vals)))
+                plt.show()
+                plt.close()
+        
+        res_d[idx][col_label] = corrs_col
+        res_d[idx][idx_label] = corrs_idx
     return res_d
