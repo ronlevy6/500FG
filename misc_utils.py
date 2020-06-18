@@ -2,6 +2,7 @@ import uuid
 import os
 import pandas as pd
 from datetime import datetime
+import matplotlib.pyplot as plt
 
 
 def create_tmp_file(curr_dir, suffix=None):
@@ -124,3 +125,16 @@ def fix_text(legend, entry_len=3):
             entry.set_text(round(ftxt, entry_len))
         except ValueError:
             continue
+
+
+def save_and_show_figure(full_path_without_extension, to_show=True, save_pdf=False, tight_layout=False, bbox_inches=None):
+    # full_path_without_extension needs to be exist!
+    if tight_layout:
+        plt.tight_layout()
+    if full_path_without_extension is not None:
+        plt.savefig(full_path_without_extension+'.jpg', bbox_inches=bbox_inches)
+        if save_pdf:
+            plt.savefig(full_path_without_extension + '.pdf', bbox_inches=bbox_inches)
+    if to_show:
+        plt.show()
+    plt.close()

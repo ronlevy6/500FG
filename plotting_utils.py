@@ -4,7 +4,7 @@ import seaborn as sns
 import pandas as pd
 import itertools
 from data_manipulation import filter_patient_df
-from misc_utils import undo_print_pretty, fix_text, print_pretty
+from misc_utils import undo_print_pretty, fix_text, print_pretty, save_and_show_figure
 
 
 def plot_df(df, x, y, to_filter=False, index_filter_vals=None, title=None, to_color=False, colors=None):
@@ -230,25 +230,21 @@ def plot_ge_on_pca_space_one_colorbar(stacked_df_ready_to_plot, by_ind, objs_to_
         handle_suptitle_and_saving(g, by_ind, obj_to_plot, patient_data, to_save, save_pdf, to_show, colorbar_mode=True)
 
 
-def plot_missing_data(data, title, figsize=(12,8), to_save=None, to_show=True):
+def plot_missing_data(data, title, figsize=(12,8), to_save=None, to_show=True, save_pdf=False):
     plt.figure(figsize=figsize)
     sns.heatmap(data.applymap(lambda x: pd.notna(x)))
-    plt.title("Missing data - {}".format(title), fontsize =20)
-    plt.tight_layout()
-    if to_save is not None:
-        plt.savefig(os.path.join(to_save, "Missing data - {}.jpg".format(title)))
-        plt.savefig(os.path.join(to_save, "Missing data - {}.pdf".format(title)))
-    if to_show:
-        plt.show()
+    plt.title("Missing data - {}".format(title), fontsize=20)
+    path_to_save=os.path.join(to_save, "Missing data - {}".format(title))
+    save_and_show_figure(path_to_save, to_show=to_show, save_pdf=save_pdf, tight_layout=True, bbox_inches=None)
 
 
-def subplots_of_correlation(d, tissues_tup, bootstarp_mode, groups=None, figsize=(16, 16), to_save=None, to_show=None):
+def subplots_of_correlation(d, tissues_tup, bootstrap_mode, figsize=(16, 16), to_save=None, to_show=None, save_pdf=False):
     col_tissues, row_tissues = tissues_tup
     # sharey only at correlation
-    fig, axs = plt.subplots(nrows=len(row_tissues), ncols=len(col_tissues), figsize=figsize, sharey=not bootstarp_mode)
+    fig, axs = plt.subplots(nrows=len(row_tissues), ncols=len(col_tissues), figsize=figsize, sharey=not bootstrap_mode)
     for t1, t2 in itertools.product(row_tissues, col_tissues):
         curr_ax = axs[row_tissues.index(t1), col_tissues.index(t2)]
-        if bootstarp_mode:
+        if bootstrap_mode:
             if t1 == t2:
                 corr_vals = []
             else:
@@ -276,7 +272,9 @@ def subplots_of_correlation(d, tissues_tup, bootstarp_mode, groups=None, figsize
     if to_save or to_show:
         fig.tight_layout()
     if to_save:
-        fig.savefig(to_save)
+        fig.savefig(to_save+'.jpg')
+        if save_pdf:
+            fig.savefig(to_save + '.pdf')
     if to_show:
         plt.show()
     plt.close()

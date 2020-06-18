@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from utils import by_idx
 from plotting_utils import plot_missing_data
+from misc_utils import save_and_show_figure
+
 
 def dist(v1, v2, min_vals_pct=0.4, penalty=10):
     """
@@ -28,7 +30,7 @@ def dist(v1, v2, min_vals_pct=0.4, penalty=10):
 
 
 def clustermap_with_color(states_df, idx_to_plot, patient_data, color_col, title=None, min_vals_pct=0.4,
-                          palette='bwr', to_save=None, col_cluster=True, to_show=True):
+                          palette='bwr', to_save=None, col_cluster=True, to_show=True, save_pdf=False):
     tissues_data = list(states_df.index)
     if len(tissues_data) == 1:
         col_cluster = False
@@ -49,25 +51,19 @@ def clustermap_with_color(states_df, idx_to_plot, patient_data, color_col, title
         g.ax_col_dendrogram.bar(0, 0, color=network_lut[label], label=label, linewidth=0)
         g.ax_col_dendrogram.legend(loc="upper left", ncol=6, bbox_to_anchor=(-0.2, 0.75, 0.5, 0.5))
 
-    if to_save is not None:
-        plt.tight_layout()
+    if to_save is not None or to_show:
         dir_to_save = os.path.join(to_save, title)
-        g.savefig(dir_to_save+'.jpg')
-        g.savefig(dir_to_save + '.pdf')
-    if to_show:
-        plt.show()
-    plt.close()
+        save_and_show_figure(dir_to_save, save_pdf=save_pdf, to_show=to_show, tight_layout=True, bbox_inches=None)
     return g
 
 
 def get_cluster_from_clustermap_result(clustermap_res, is_row, title, color_thresh_const=0.6, leaf_rotation=90,
-                                       figsize=(15, 6), to_save=None, to_show=True):
+                                       figsize=(15, 6), to_save=None, to_show=True, save_pdf=False):
     """
     prints clustering based on clustermap results
-    :param to_save: if not None-directory in which to save figure
     """
     plt.figure(figsize=figsize)
-    plt.title(title, fontdict={'fontsize':20})
+    plt.title(title, fontdict={'fontsize' : 20})
     if is_row:
         Z = clustermap_res.dendrogram_row.linkage
         labels = clustermap_res.data.index
@@ -76,44 +72,40 @@ def get_cluster_from_clustermap_result(clustermap_res, is_row, title, color_thre
         labels = clustermap_res.data.columns
     dn = hierarchy.dendrogram(Z, labels=labels,
                               color_threshold=color_thresh_const*max(Z[:,2]), leaf_rotation=leaf_rotation)
-    if to_save is not None:
-        plt.tight_layout()
-        dir_to_save = os.path.join(to_save, title)
-        plt.savefig(dir_to_save+'.jpg')
-        plt.savefig(dir_to_save + '.pdf')
-    if to_show:
-        plt.show()
-    plt.close()
+    if to_save is not None or to_show:
+        dir_to_save = os.path.join(to_save, title) if to_save is not None else None
+        save_and_show_figure(dir_to_save, save_pdf=save_pdf, to_show=to_show, tight_layout=True, bbox_inches=None)
     return dn
 
 
 def tissue_clustering(curr_data, main_title, patient_data, extract_cluster=False, hue_col='sex_name',
-                      min_vals_pct=0.0, is_row=False, missing_data_figsize=(12,8),
-                      to_save=None, to_show=True):
+                      min_vals_pct=0.0, is_row=False, missing_data_figsize=(12, 8),
+                      to_save=None, to_show=True, save_pdf=False):
 
     # plot missing data visualization
     plot_missing_data(curr_data, main_title, figsize=missing_data_figsize, to_save=to_save, to_show=to_show)
 
     s1_data = clustermap_with_color(curr_data, 0, patient_data, hue_col, min_vals_pct=min_vals_pct,
-                                    title='s1 clustering - {}'.format(main_title), to_save=to_save)
+                                    title='s1 clustering - {}'.format(main_title), to_save=to_save, to_show=to_show,
+                                    save_pdf=save_pdf)
+
+    s2_data = clustermap_with_color(curr_data, 1, patient_data, hue_col, min_vals_pct=min_vals_pct,
+                                    title='s2 clustering - {}'.format(main_title), to_save=to_save, to_show=to_show,
+                                    save_pdf=save_pdf)
     if extract_cluster:
         s1_cluster = get_cluster_from_clustermap_result(s1_data, is_row=is_row,
                                                         title='s1 tissue clustering - {}'.format(main_title),
-                                                        to_save=to_save)
+                                                        to_save=to_save, to_show=to_show, save_pdf=save_pdf)
 
-    s2_data = clustermap_with_color(curr_data, 1, patient_data, hue_col, min_vals_pct=min_vals_pct,
-                                    title='s2 clustering - {}'.format(main_title), to_save=to_save)
-    if extract_cluster:
         s2_cluster = get_cluster_from_clustermap_result(s2_data, is_row=is_row,
                                                         title='s2 tissue clustering - {}'.format(main_title),
-                                                        to_save=to_save)
-    if extract_cluster:
+                                                        to_save=to_save, to_show=to_show, save_pdf=save_pdf)
         return s1_data, s1_cluster, s2_data, s2_cluster
     return s1_data, s2_data
 
 
 def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh=5, to_plot=True,
-                            to_save=None, to_show=True):
+                            to_save=None, to_show=True, save_pdf=True, tight_layout=True, bbox_inches='tight'):
     curr_state_df = states_df.applymap(lambda val: by_idx(val, state_idx))
     corr_df = curr_state_df.transpose().corr()
     corr_df = corr_df[sorted(list(corr_df.columns))].sort_index()
@@ -122,7 +114,7 @@ def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh
     to_del = corr_df[corr_df.isna().sum() == corr_df.shape[0]].index
     corr_df = corr_df.drop(columns=to_del).drop(index=to_del)
 
-    curr_title = 'Correlation between states - {} s{}'.format(main_title, state_idx + 1)
+    curr_title = 'Correlation between tissues - {} s{}'.format(main_title, state_idx + 1)
     while corr_df.isna().sum().sum() and tissues_del_thresh > 0:
         tissues_del_thresh -= 1
         to_del = set(corr_df[corr_df.isna().sum() > tissues_del_thresh].index)
@@ -130,15 +122,15 @@ def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh
     if to_plot:
         g = sns.clustermap(corr_df, cmap='bwr', vmin=-1, vmax=1)
         plt.title(curr_title)
-        if to_save is not None:
-            plt.tight_layout()
-            dir_to_save = os.path.join(to_save, curr_title)
-            g.savefig(dir_to_save + ' map.jpg'.format(state_idx))
-            g.savefig(dir_to_save + ' map.pdf'.format(state_idx))
-        if to_show:
-            plt.show()
-        plt.close()
-        curr_cluster = get_cluster_from_clustermap_result(g, is_row=True, title=curr_title, to_save=to_save)
+
+        if to_save is not None or to_show:
+            dir_to_save = os.path.join(to_save, curr_title) if to_save is not None else None
+            save_and_show_figure(dir_to_save, save_pdf=save_pdf, to_show=to_show,
+                                 tight_layout=tight_layout, bbox_inches=bbox_inches)
+
+        corr_cluster = get_cluster_from_clustermap_result(g, is_row=True, title=curr_title + ' clusters',
+                                                          to_save=to_save, to_show=to_show, save_pdf=save_pdf)
     else:
         g = None
-    return corr_df, g, curr_cluster
+        corr_cluster = None
+    return corr_df, g, corr_cluster
