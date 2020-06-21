@@ -61,7 +61,8 @@ def smart_print(is_mean, is_std, is_max, is_builtin, to_filter, evr):
 
 def plot_states_scatter_subplots(main_title, input_data, patients_to_use, sub_tissues_to_use, patient_data,
                                   hue, hue_order, figsize=(25, 35), to_save=None, legend_loc=(0.4, 0.8),
-                                  progress_print=False, to_show=True, title_fontsize=28, ylabel_fontsize=14):
+                                  progress_print=False, to_show=True, title_fontsize=28, ylabel_fontsize=14,
+                                 scatter_kwargs={}):
     """
     plots multiple scatter plots for states. Each state_df consists of tuples when data available, else empty (None)
     lst_of_states_df_with_names - list of tuples [(name, states_df),..]
@@ -91,7 +92,8 @@ def plot_states_scatter_subplots(main_title, input_data, patients_to_use, sub_ti
             curr_ax.axhline(y=0.0, color='black', linestyle='--', linewidth=0.8, )
             curr_ax.axvline(x=0.0, color='black', linestyle='--', linewidth=0.8, )
 
-            a = sns.scatterplot(x='s1', y='s2', hue=hue, data=curr_data, ax=curr_ax, hue_order=hue_order)
+            a = sns.scatterplot(x='s1', y='s2', hue=hue, data=curr_data, ax=curr_ax, hue_order=hue_order,
+                                **scatter_kwargs)
             handles, labels = curr_ax.get_legend_handles_labels()
             try:
                 a.legend_.remove()
@@ -166,7 +168,7 @@ def handle_suptitle_and_saving(g, by_ind, obj_to_plot, patient_data, to_save, sa
 
 def plot_ge_on_pca_space(stacked_df_ready_to_plot, by_ind, objs_to_plot, filter_col, grid_row, grid_col,
                          scatter_x_col, scatter_y_col, scatter_hue_col, col_to_state_dfs_d, patient_data,
-                         gridspec_kws={"wspace": 0.7, "hspace": 0.5}, margin_titles=True,
+                         gridspec_kws={"wspace": 0.7, "hspace": 0.5}, margin_titles=True, map_kwargs={},
                          sharex=True, sharey=True, to_show=True, to_save=None, save_pdf=False, palette='bwr'
                          ):
     """
@@ -179,7 +181,8 @@ def plot_ge_on_pca_space(stacked_df_ready_to_plot, by_ind, objs_to_plot, filter_
         curr_plotabble.sort_values(by=[grid_row], inplace=True)
         g = sns.FacetGrid(curr_plotabble, row=grid_row, col=grid_col, gridspec_kws=gridspec_kws,
                           margin_titles=margin_titles, sharex=sharex, sharey=sharey)
-        g = g.map(sns.scatterplot, scatter_x_col, scatter_y_col, scatter_hue_col, edgecolor=None, lw=0, palette=palette)
+        g = g.map(sns.scatterplot, scatter_x_col, scatter_y_col, scatter_hue_col, edgecolor=None, lw=0,
+                  palette=palette, **map_kwargs)
         num_of_cols = len(g.col_names)
 
         # Fix the titles and labels in the grid
@@ -201,16 +204,15 @@ def facet_scatter(x, y, c, **kwargs):
 def plot_ge_on_pca_space_one_colorbar(stacked_df_ready_to_plot, by_ind, objs_to_plot, filter_col, grid_row, grid_col,
                                       scatter_x_col, scatter_y_col, scatter_hue_col, col_to_state_dfs_d, patient_data,
                                       vmin=-7, vmax=7, gridspec_kws={"wspace": 0.7, "hspace": 0.5}, margin_titles=True,
-                                      sharex=True, sharey=True, to_show=True, to_save=None, save_pdf=False,
-                                      palette='bwr'
-                                      ):
+                                      map_kwargs={}, sharex=True, sharey=True, to_show=True, to_save=None,
+                                      save_pdf=False, palette='bwr'):
     for obj_to_plot in objs_to_plot:
         curr_plotabble = stacked_df_ready_to_plot[stacked_df_ready_to_plot[filter_col] == obj_to_plot]
         curr_plotabble.sort_values(by=[grid_row], inplace=True)
         g = sns.FacetGrid(curr_plotabble, row=grid_row, col=grid_col, gridspec_kws=gridspec_kws,
                           margin_titles=margin_titles, sharex=sharex, sharey=sharey)
         g = g.map(facet_scatter, scatter_x_col, scatter_y_col, scatter_hue_col, edgecolor=None, linewidths=0,
-                  cmap=palette, vmin=vmin, vmax=vmax)
+                  cmap=palette, vmin=vmin, vmax=vmax, **map_kwargs)
 
         num_of_cols = len(g.col_names)
 
