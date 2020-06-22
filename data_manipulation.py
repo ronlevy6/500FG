@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 import pickle
 import pandas as pd
-
+from scipy.spatial.distance import pdist, squareform
 from misc_utils import create_tmp_file, chunks
 from utils import apply_angle, rename_patient_name
 
@@ -23,10 +23,9 @@ def calc_row_col_dist(arr_2d, node_idx, k=50, with_distance=False,axis=0):
         return [x[0] for x in idx_dist_lst[:k]]
 
 
-def calc_dist_in_df(df, by_idx=True, k=None, with_distance=False, executor=None, tmp_dir=None):
+def calc_dist_in_df_cluster(df, by_idx=True, k=None, with_distance=False, executor=None, tmp_dir=None):
     tmp = None
     arr_2d = df.to_numpy()
-
 
     if executor is not None:
         assert tmp_dir is not None
@@ -53,6 +52,22 @@ def calc_dist_in_df(df, by_idx=True, k=None, with_distance=False, executor=None,
             nearest_points = calc_row_col_dist(arr_2d, idx, axis=axis, k=k, with_distance=with_distance)
         dist_lsts[val] = nearest_points
     return dist_lsts, tmp
+
+
+def calc_dist_in_df(df, subset_cols=[], metric='euclidean', return_df=True, col_names=True, idx_names=False):
+    if len(subset_cols):
+        np_arr = df[subset_cols].to_numpy()
+    else:
+        np_arr = df.to_numpy()
+    distances = pdist(np_arr, metric=metric)
+    dist_mat = squareform(distances)
+    if return_df:
+        dist_mat = pd.DataFrame(dist_mat)
+        if col_names:
+            dist_mat.columns = df.index.tolist()
+        if idx_names:
+            dist_mat.index = df.index.tolist()
+    return dist_mat
 
 
 def smooth_data(df, idx, nns_data, by_name=False):
