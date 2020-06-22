@@ -174,13 +174,16 @@ def plot_ge_on_pca_space(stacked_df_ready_to_plot, by_ind, objs_to_plot, filter_
     """
     by_ind - Boolean. When False the plot is by tissue
     objs_to_plot - list of tissues/patients to plot
+    col_to_state_dfs_d - {idx: (title, stated_df_to_use)}. e.g: {0:('Normal',states),1:('Smoothen',smoothen_states),...}
     to_save - if None, not saving, else to_save is a directory in which we save
     """
     for obj_to_plot in objs_to_plot:
         curr_plotabble = stacked_df_ready_to_plot[stacked_df_ready_to_plot[filter_col] == obj_to_plot]
-        curr_plotabble.sort_values(by=[grid_row], inplace=True)
         g = sns.FacetGrid(curr_plotabble, row=grid_row, col=grid_col, gridspec_kws=gridspec_kws,
-                          margin_titles=margin_titles, sharex=sharex, sharey=sharey)
+                          margin_titles=margin_titles, sharex=sharex, sharey=sharey,
+                          col_order=[v[0] for k, v in sorted(col_to_state_dfs_d.items())],
+                          row_order=sorted(curr_plotabble[grid_row].unique())
+                          )
         g = g.map(sns.scatterplot, scatter_x_col, scatter_y_col, scatter_hue_col, edgecolor=None, lw=0,
                   palette=palette, **map_kwargs)
         num_of_cols = len(g.col_names)
@@ -210,7 +213,10 @@ def plot_ge_on_pca_space_one_colorbar(stacked_df_ready_to_plot, by_ind, objs_to_
         curr_plotabble = stacked_df_ready_to_plot[stacked_df_ready_to_plot[filter_col] == obj_to_plot]
         curr_plotabble.sort_values(by=[grid_row], inplace=True)
         g = sns.FacetGrid(curr_plotabble, row=grid_row, col=grid_col, gridspec_kws=gridspec_kws,
-                          margin_titles=margin_titles, sharex=sharex, sharey=sharey)
+                          margin_titles=margin_titles, sharex=sharex, sharey=sharey,
+                          col_order=[v[0] for k, v in sorted(col_to_state_dfs_d.items())],
+                          row_order=sorted(curr_plotabble[grid_row].unique())
+                          )
         g = g.map(facet_scatter, scatter_x_col, scatter_y_col, scatter_hue_col, edgecolor=None, linewidths=0,
                   cmap=palette, vmin=vmin, vmax=vmax, **map_kwargs)
 
