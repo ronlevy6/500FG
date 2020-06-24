@@ -4,7 +4,7 @@ from numpy.linalg import lstsq
 from collections import Counter
 from sklearn.linear_model import LinearRegression
 
-from data_manipulation import fit_GE_to_500fg
+from data_manipulation import fit_GE_to_space
 
 
 def calc_states(tissue_dict, pca_df, fit_to_500FG=True, to_filter=None):
@@ -17,7 +17,7 @@ def calc_states(tissue_dict, pca_df, fit_to_500FG=True, to_filter=None):
             x1 = pca_df['pc1']
             x2 = pca_df['pc2']
             if fit_to_500FG:
-                df = fit_GE_to_500fg(df, x1.index)
+                df = fit_GE_to_space(df, x1.index)
 
             x1 = x1.loc[df.index.get_level_values('name')]
             x2 = x2.loc[df.index.get_level_values('name')]
@@ -41,9 +41,9 @@ def calc_states(tissue_dict, pca_df, fit_to_500FG=True, to_filter=None):
 def handle_pca_df_dups(pca_df, ge_df, ge_index_col):
     dup_genes = pca_df.index[pca_df.index.duplicated(keep=False)].to_list()
     new_df = pd.DataFrame(columns=ge_df.columns)
-    for dup_gene, num_of_apperences in Counter(dup_genes).items():
-        for insertion in range(num_of_apperences - 1):
-            # the minus 1 is because it appears once in the ge_df allready
+    for dup_gene, num_of_appearances in Counter(dup_genes).items():
+        for insertion in range(num_of_appearances - 1):
+            # the minus 1 is because it appears once in the ge_df already
             new_df = new_df.append(ge_df.loc[ge_df.index.get_level_values(ge_index_col).isin([dup_gene])])
 
     ge_df = ge_df.append(new_df)
@@ -51,7 +51,7 @@ def handle_pca_df_dups(pca_df, ge_df, ge_index_col):
 
 
 def calc_states_combined(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='name',
-                         fit_to_500FG=True, to_filter=None, should_handle_pca_df_dups=True):
+                         fit_to_500FG=True, to_filter=None, should_handle_pca_df_dups=True, fit_ge_to_space_kwargs={}):
     pca_df = pca_df[[x_col, y_col]]
     if to_filter is not None:
         if isinstance(to_filter[0], str):
@@ -67,7 +67,7 @@ def calc_states_combined(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index
             df = tissue_dict[tissue][sub_tissue]
 
             if fit_to_500FG:
-                df = fit_GE_to_500fg(df, pca_df.index)
+                df = fit_GE_to_space(df, pca_df.index, **fit_ge_to_space_kwargs)
 
             vals_to_use = list(set(df.index.get_level_values(ge_index_col)) & set(pca_df.index))
             curr_pca_df = pca_df.loc[vals_to_use].dropna().sort_index()
