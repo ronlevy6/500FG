@@ -162,7 +162,7 @@ def find_center_sensitive(space_df, x_col, y_col, num_of_values_to_use=20):
     return res
 
 
-def fit_GE_to_space(ge_df, space_genes, index_names=('symbol', 'name'), ge_index_col='name',):
+def fit_GE_to_space(ge_df, space_genes, index_names=('symbol', 'name'), ge_index_col='name', handle_variants=True):
     """
     filter genes in GE dataframe that don't appear in the space and in case of variants keeps the highest one
     :return:
@@ -170,10 +170,11 @@ def fit_GE_to_space(ge_df, space_genes, index_names=('symbol', 'name'), ge_index
     ge_df.set_index(pd.MultiIndex.from_tuples(ge_df.index, names=index_names), inplace=True)
     ge_df = ge_df[ge_df.index.get_level_values(ge_index_col).isin(space_genes)]  # take from GE only genes in PCA
     many_times = [x[0] for x in Counter(ge_df.index.get_level_values(ge_index_col)).items() if x[1] > 1]
-    for gene in many_times:
-        med = ge_df[ge_df.index.get_level_values(ge_index_col) == gene].median(axis=1)
-        to_del = med.sort_values().index[0]
-        ge_df.drop(to_del, inplace=True)
+    if handle_variants:
+        for gene in many_times:
+            med = ge_df[ge_df.index.get_level_values(ge_index_col) == gene].median(axis=1)
+            to_del = med.sort_values().index[0]
+            ge_df.drop(to_del, inplace=True)
     return ge_df
 
 
