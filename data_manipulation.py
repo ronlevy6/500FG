@@ -70,13 +70,77 @@ def calc_dist_in_df(df, subset_cols=[], metric='euclidean', return_df=True, col_
     return dist_mat
 
 
-def smooth_data(df, idx, nns_data, by_name=False):
+def smooth_data_by_df(df, idx, nns_data, by_name=False):
     nns = nns_data[idx]
     if by_name:
         fdf = df.loc[nns]
     else:
         fdf = df.iloc[nns]
     return fdf.mean()
+
+
+def get_gene_closest(gene_dist, k, max_dist=1000):
+    """
+    :param gene_dist: A series with distances from gene
+    :param k: number of nearest neighbors to return
+    :param max_dist: max valid distance
+    :return: knn
+    """
+    sorted_by_dist = gene_dist.sort_values().iloc[:k]
+    return sorted_by_dist[sorted_by_dist < max_dist]
+
+
+def get_closest(dist_df, k=None, max_dist=0.1):
+    if k is None:
+        k = int(dist_df.shape[0]*0.01)  # 1% of data
+    closet_genes_dict = dict()
+    for col_num in tqdm(range(len(dist_df.columns))):
+        res = get_gene_closest(dist_df.iloc[:, col_num], k=k, max_dist=max_dist)
+        closet_genes_dict[col_num] = res
+    return closet_genes_dict
+
+
+def smooth_data(ge_dict, pca_space, dist_df, col_to_change_to_original=['is_far', 'early', 'late'], need_to_merge=True,
+                validate_distance_df=False, ge_index_col='name', get_closest_kwargs={}):
+    if dist_df is not None:
+        closet_genes_dict = get_closest(dist_df, **get_closest_kwargs)
+    smoothen_ge_space_data = dict()
+    for tissue in tqdm(ge_dict):
+        for sub_tissue in ge_dict[tissue]:
+            smoothen_ge_space_data.setdefault(tissue, dict())[sub_tissue] = dict()
+
+            # The merge is done to keep order
+            curr_ge_df = ge_dict[tissue][sub_tissue]
+            if need_to_merge:
+                pca_space_with_ge = pca_space.merge(curr_ge_df, left_index=True, right_on='name')
+            else:
+                pca_space_with_ge = curr_ge_df
+            if dist_df is None:
+                dist_df = calc_dist_in_df(pca_space_with_ge, ['early', 'late'], idx_names=False)
+                closet_genes_dict = get_closest(dist_df, **get_closest_kwargs)
+
+            # fill in dict is faster than DataFrame
+            smoothen_d = dict()
+            if validate_distance_df:
+                # SLOW!!
+                curr_dist_df = calc_dist_in_df(pca_space_with_ge, ['early', 'late'], idx_names=False)
+                curr_closest_genes_dict = get_closest(curr_dist_df, **get_closest_kwargs)
+                assert pca_space_with_ge.index.tolist() == curr_dist_df.columns.tolist()
+                assert (dist_df.values.flatten() == curr_dist_df.values.flatten()).all()
+                assert [col[1] for col in dist_df.columns] == [col[1] for col in curr_dist_df.columns]
+                assert curr_closest_genes_dict == closet_genes_dict
+            assert pca_space_with_ge.index.get_level_values(ge_index_col).tolist() == [col[1] for col in dist_df.columns]
+            # The smoothing itself
+            for col_num in tqdm(range(len(dist_df.columns))):
+                res = closet_genes_dict[col_num]
+                smoothen_d[col_num] = pca_space_with_ge.iloc[res.index].mean()
+
+            smoothen_df_t = pd.DataFrame(smoothen_d)
+            smoothen_df_t.columns = dist_df.columns
+            for col in col_to_change_to_original:
+                smoothen_df_t.loc[col] = pca_space_with_ge[col].values.tolist()
+            smoothen_ge_space_data[tissue][sub_tissue] = smoothen_df_t.transpose()
+    return smoothen_ge_space_data
 
 
 def norm_gene(row, eps=1):
