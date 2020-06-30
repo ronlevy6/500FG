@@ -2,12 +2,15 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-from tqdm import tqdm
 import pickle
 import pandas as pd
 from scipy.spatial.distance import pdist, squareform
 from misc_utils import create_tmp_file, chunks
-from utils import apply_angle, rename_patient_name
+from utils import apply_angle, rename_patient_name, IS_NOTEBOOK
+if IS_NOTEBOOK:
+    from tqdm.notebook import tqdm
+else:
+    from tqdm import tqdm
 
 
 def calc_row_col_dist(arr_2d, node_idx, k=50, with_distance=False,axis=0):

@@ -2,10 +2,13 @@ import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from IPython import get_ipython
+
+IS_NOTEBOOK = 'zmqshell' in str(get_ipython())
 
 
-# center - x0,y0
 def get_angle_in_circle(x, y, x0, y0):
+    # center - x0,y0
     (dx, dy) = (x0-x, y-y0)
     # angle = atan(float(dy)/float(dx))
     angle = math.degrees(math.atan2(float(dy), float(dx)))

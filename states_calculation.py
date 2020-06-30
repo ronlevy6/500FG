@@ -1,8 +1,12 @@
 import pandas as pd
 from collections import Counter
 from sklearn.linear_model import LinearRegression
-
 from data_manipulation import fit_GE_to_space
+from utils import IS_NOTEBOOK
+if IS_NOTEBOOK:
+    from tqdm.notebook import tqdm
+else:
+    from tqdm import tqdm
 
 
 def handle_pca_df_dups(pca_df, ge_df, ge_index_col):
@@ -33,7 +37,7 @@ def calc_states(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='nam
     if to_filter is not None:
         pca_df = filter_df(pca_df, to_filter)
     states_by_all = dict()
-    for tissue in tissue_dict:
+    for tissue in tqdm(tissue_dict):
         for sub_tissue in tissue_dict[tissue]:
             df = tissue_dict[tissue][sub_tissue]
 
@@ -64,7 +68,7 @@ def calc_states_combined(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index
         pca_df = filter_df(pca_df, to_filter)
 
     states_by_all = dict()
-    for tissue in tissue_dict:
+    for tissue in tqdm(tissue_dict):
         for sub_tissue in tissue_dict[tissue]:
             df = tissue_dict[tissue][sub_tissue]
             if need_to_merge:
