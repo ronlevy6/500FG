@@ -61,11 +61,11 @@ def calc_states(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='nam
     return states_by_all
 
 
-def calc_states_combined(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='name', to_filter=None,
-                         need_to_merge=False):
+def calc_states_combined(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='name',
+                         to_filter_pca_df=None, need_to_merge=False, query_to_filter_merged_df=None):
 
-    if to_filter is not None:
-        pca_df = filter_df(pca_df, to_filter)
+    if to_filter_pca_df is not None:
+        pca_df = filter_df(pca_df, to_filter_pca_df)
 
     states_by_all = dict()
     for tissue in tqdm(tissue_dict):
@@ -75,7 +75,8 @@ def calc_states_combined(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index
                 df_with_pca = pca_df.merge(df, left_index=True, right_on=ge_index_col)
             else:
                 df_with_pca = df
-
+            if query_to_filter_merged_df:
+                df_with_pca = df_with_pca.query(query_to_filter_merged_df)
             for ind in df.columns:  # use individuals from original GE df
                 y = df_with_pca[ind]
                 model = LinearRegression(fit_intercept=False).fit(df_with_pca[[x_col, y_col]], y)
