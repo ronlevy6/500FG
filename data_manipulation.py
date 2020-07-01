@@ -100,13 +100,13 @@ def get_closest(dist_df, k=None, max_dist=0.1):
     for col_num in tqdm(range(len(dist_df.columns))):
         res = get_gene_closest(dist_df.iloc[:, col_num], k=k, max_dist=max_dist)
         closet_genes_dict[col_num] = res
-    return closet_genes_dict
+    return closet_genes_dict, isinstance(res[0], int)
 
 
-def smooth_data(ge_dict, pca_space, dist_df, col_to_change_to_original=['is_far', 'early', 'late'], need_to_merge=True,
-                validate_distance_df=False, ge_index_col='name', get_closest_kwargs={}):
+def smooth_data(ge_dict, pca_space, dist_df, x_col, y_col, col_to_change_to_original=['is_far', 'early', 'late'],
+                need_to_merge=True, validate_distance_df=False, ge_index_col='name', get_closest_kwargs={}):
     if dist_df is not None:
-        closet_genes_dict = get_closest(dist_df, **get_closest_kwargs)
+        closet_genes_dict, closest_by_idx = get_closest(dist_df, **get_closest_kwargs)
     smoothen_ge_space_data = dict()
     for tissue in tqdm(ge_dict):
         for sub_tissue in ge_dict[tissue]:
@@ -119,24 +119,34 @@ def smooth_data(ge_dict, pca_space, dist_df, col_to_change_to_original=['is_far'
             else:
                 pca_space_with_ge = curr_ge_df
             if dist_df is None:
-                dist_df = calc_dist_in_df(pca_space_with_ge, ['early', 'late'], idx_names=False)
-                closet_genes_dict = get_closest(dist_df, **get_closest_kwargs)
+                dist_df = calc_dist_in_df(pca_space_with_ge, [x_col, y_col], idx_names=False)
+                closet_genes_dict, closest_by_idx = get_closest(dist_df, **get_closest_kwargs)
 
             # fill in dict is faster than DataFrame
             smoothen_d = dict()
             if validate_distance_df:
                 # SLOW!!
-                curr_dist_df = calc_dist_in_df(pca_space_with_ge, ['early', 'late'], idx_names=False)
+                curr_dist_df = calc_dist_in_df(pca_space_with_ge, [x_col, y_col,], idx_names=False)
                 curr_closest_genes_dict = get_closest(curr_dist_df, **get_closest_kwargs)
                 assert pca_space_with_ge.index.tolist() == curr_dist_df.columns.tolist()
                 assert (dist_df.values.flatten() == curr_dist_df.values.flatten()).all()
-                assert [col[1] for col in dist_df.columns] == [col[1] for col in curr_dist_df.columns]
+                if isinstance(dist_df[col], tuple):
+                    assert [col[1] for col in dist_df.columns] == [col[1] for col in curr_dist_df.columns]
+                else:
+                    assert [col for col in dist_df.columns] == [col for col in curr_dist_df.columns]
                 assert curr_closest_genes_dict == closet_genes_dict
-            assert pca_space_with_ge.index.get_level_values(ge_index_col).tolist() == [col[1] for col in dist_df.columns]
+            if closest_by_idx:
+                # only need to make sure the order is the same when comparing by indices
+                assert pca_space_with_ge.index.get_level_values(ge_index_col).tolist() == \
+                       [col[1] if isinstance(col, tuple) else col for col in dist_df.columns]  #fit case columns aren't tuple
             # The smoothing itself
             for col_num in tqdm(range(len(dist_df.columns))):
                 res = closet_genes_dict[col_num]
-                smoothen_d[col_num] = pca_space_with_ge.iloc[res.index].mean()
+                if closest_by_idx:
+                    smoothen_d[col_num] = pca_space_with_ge.iloc[res.index].mean()
+                else:
+                    smoothen_d[col_num] = \
+                        pca_space_with_ge[pca_space_with_ge.index.get_level_values(ge_index_col).isin(res.index)].mean()
 
             smoothen_df_t = pd.DataFrame(smoothen_d)
             smoothen_df_t.columns = dist_df.columns

@@ -74,12 +74,14 @@ def dedup_space_df(space_df, subset_cols=None):
 def compare_state_dfs(df1, df2, verbose=False, round_dig=5):
     # the fillna is to be able to compare nans
     lst = []
+    shared_columns = list(set(df1.columns) & set(df2.columns))
     for idx in [0, 1]:
         df1_fixed = df1.applymap(lambda val: by_idx(val, idx)).fillna(666).applymap(lambda val: round(val, round_dig))
         df2_fixed = df2.applymap(lambda val: by_idx(val, idx)).fillna(666).applymap(lambda val: round(val, round_dig))
         df1_fixed.sort_index(inplace=True)
         df2_fixed.sort_index(inplace=True)
-        df2_fixed = df2_fixed[list(df1_fixed.columns)]
+        df1_fixed = df1_fixed[shared_columns]
+        df2_fixed = df2_fixed[shared_columns]
         lst.append(df1_fixed.equals(df2_fixed))
         if verbose:
             print("Compared idx-{}".format(idx + 1))
@@ -88,12 +90,14 @@ def compare_state_dfs(df1, df2, verbose=False, round_dig=5):
 
 def correlate_between_dfs(df1, df2, verbose=True, title=None, col_label='column', idx_label='index',
                           min_periods=25, hist_kwargs={}):
+    shared_columns = list(set(df1.columns) & set(df2.columns))
     res_d = dict()
     for idx in [0, 1]:
         res_d[idx] = dict()
         df1_fixed = df1.applymap(lambda val: by_idx(val, idx)).sort_index()
         df2_fixed = df2.applymap(lambda val: by_idx(val, idx)).sort_index()
-        df2_fixed = df2_fixed[list(df1_fixed.columns)]
+        df1_fixed = df1_fixed[shared_columns]
+        df2_fixed = df2_fixed[shared_columns]
         corrs_col = dict()
         corrs_idx = dict()
 
