@@ -2,6 +2,7 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import numbers
 import pickle
 import pandas as pd
 from scipy.spatial.distance import pdist, squareform
@@ -100,7 +101,7 @@ def get_closest(dist_df, k=None, max_dist=0.1):
     for col_num in tqdm(range(len(dist_df.columns))):
         res = get_gene_closest(dist_df.iloc[:, col_num], k=k, max_dist=max_dist)
         closet_genes_dict[col_num] = res
-    return closet_genes_dict, isinstance(res[0], int)
+    return closet_genes_dict, isinstance(res.index[0], numbers.Number)
 
 
 def smooth_data(ge_dict, pca_space, dist_df, x_col, y_col, col_to_change_to_original=['is_far', 'early', 'late'],
@@ -121,7 +122,9 @@ def smooth_data(ge_dict, pca_space, dist_df, x_col, y_col, col_to_change_to_orig
             if dist_df is None:
                 dist_df = calc_dist_in_df(pca_space_with_ge, [x_col, y_col], idx_names=False)
                 closet_genes_dict, closest_by_idx = get_closest(dist_df, **get_closest_kwargs)
-
+            if isinstance(pca_space_with_ge.index, pd.core.index.MultiIndex) and not closest_by_idx:
+                levels_to_drop = list(set(pca_space_with_ge.index.names) - set([ge_index_col]))
+                pca_space_with_ge = pca_space_with_ge.droplevel(levels_to_drop)
             # fill in dict is faster than DataFrame
             smoothen_d = dict()
             if validate_distance_df:
@@ -145,8 +148,7 @@ def smooth_data(ge_dict, pca_space, dist_df, x_col, y_col, col_to_change_to_orig
                 if closest_by_idx:
                     smoothen_d[col_num] = pca_space_with_ge.iloc[res.index].mean()
                 else:
-                    smoothen_d[col_num] = \
-                        pca_space_with_ge[pca_space_with_ge.index.get_level_values(ge_index_col).isin(res.index)].mean()
+                    smoothen_d[col_num] = pca_space_with_ge.loc[res.index].mean()
 
             smoothen_df_t = pd.DataFrame(smoothen_d)
             smoothen_df_t.columns = dist_df.columns
