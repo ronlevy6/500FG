@@ -32,7 +32,7 @@ def filter_df(df, to_filter):
     return df
 
 
-def calc_states(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='name',
+def calc_states(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='name', fit_intercept=False,
                 fit_to_500FG=True, to_filter=None, should_handle_pca_df_dups=True, fit_ge_to_space_kwargs={}):
     if to_filter is not None:
         pca_df = filter_df(pca_df, to_filter)
@@ -53,15 +53,14 @@ def calc_states(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='nam
             for ind in df.columns:
                 y = df[ind]
                 assert (y.index.get_level_values(ge_index_col) == curr_pca_df.index).all()
-                model = LinearRegression(fit_intercept=False).fit(curr_pca_df[[x_col, y_col]], y)
-                assert model.intercept_ is None or model.intercept_ == 0
+                model = LinearRegression(fit_intercept=fit_intercept).fit(curr_pca_df[[x_col, y_col]], y)
                 if ind not in states_by_all:
                     states_by_all[ind] = dict()
                 states_by_all[ind][sub_tissue] = (model.coef_[0], model.coef_[1])
     return states_by_all
 
 
-def calc_states_combined(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='name',
+def calc_states_combined(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='name', fit_intercept=False,
                          to_filter_pca_df=None, need_to_merge=False, query_to_filter_merged_df=None):
 
     if to_filter_pca_df is not None:
@@ -79,8 +78,7 @@ def calc_states_combined(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index
                 df_with_pca = df_with_pca.query(query_to_filter_merged_df)
             for ind in df.columns:  # use individuals from original GE df
                 y = df_with_pca[ind]
-                model = LinearRegression(fit_intercept=False).fit(df_with_pca[[x_col, y_col]], y)
-                assert model.intercept_ is None or model.intercept_ == 0
+                model = LinearRegression(fit_intercept=fit_intercept).fit(df_with_pca[[x_col, y_col]], y)
                 if ind not in states_by_all:
                     states_by_all[ind] = dict()
                 states_by_all[ind][sub_tissue] = (model.coef_[0], model.coef_[1])

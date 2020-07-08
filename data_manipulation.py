@@ -1,3 +1,5 @@
+import os
+import itertools
 from collections import Counter
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -376,7 +378,8 @@ def var_analysis_tmp_df(x_data, y_data, min_num_of_points, x_label, y_label, fil
 
 
 def var_analysis(x_data, y_data, patient_data, x_label='x', y_label='y', col_to_sort_by=None, chunk_size=10,
-                 min_num_of_points=10, title=None, fill_missing_vals=False, to_plot=True, to_save=None, to_show=True):
+                 min_num_of_points=10, title=None, use_title=False, fill_missing_vals=False,
+                 to_plot=True, to_save=None, to_show=True):
     full_markers = ['o', '<', '>']
     # Prepare the variance df
     df_to_use = None
@@ -415,12 +418,38 @@ def var_analysis(x_data, y_data, patient_data, x_label='x', y_label='y', col_to_
 
             plt.xlim(0, max_x)
             plt.ylim(0, max_y)
-            plt.legend(bbox_to_anchor=(1.1, 1.05))
+            plt.legend(bbox_to_anchor=(1.1, 1.05), loc='upper left')
             if title is not None:
                 plt.title(title + ' chuck {}'.format(chunk_idx))
             if to_save is not None:
-                plt.savefig(to_save + '_chunk {}.jpg'.format(chunk_idx), bbox_inches='tight')
+                if col_to_sort_by is not None:
+                    save_path = os.path.join(to_save, '{}_chunk {}.jpg'.format(col_to_sort_by, chunk_idx))
+                else:
+                    if use_title:
+                        save_path = os.path.join(to_save, '{} chunk {}.jpg'.format(title, chunk_idx))
+                    else:
+                        save_path = os.path.join(to_save, 'chunk {}.jpg'.format(chunk_idx))
+                plt.savefig(save_path, bbox_inches='tight')
             if to_show:
                 plt.show()
             plt.close()
     return df_to_use
+
+
+def var_analysis_within_group(data_to_use, data_label, patient_data, col_to_sort_by, title=None,chunk_size=20,
+                              min_num_of_points=15, to_save=None, to_show=False):
+    var_dfs = dict()
+    for subgroup1, subgroup2 in itertools.combinations(patient_data[col_to_sort_by].unique(), r=2):
+        if subgroup1 == subgroup2:
+            continue
+        if title is None:
+            title_to_use ='Variance of {} by {}- {} vs {}'.format(data_label, col_to_sort_by,  subgroup1, subgroup2)
+        else:
+            title_to_use = title
+        x_data = data_to_use[patient_data[patient_data[col_to_sort_by] == subgroup1].index]
+        y_data = data_to_use[patient_data[patient_data[col_to_sort_by] == subgroup2].index]
+        var_dfs[subgroup1, subgroup2] = var_analysis(x_data, y_data, patient_data, chunk_size=chunk_size,
+                                                     min_num_of_points=min_num_of_points, title=title_to_use,
+                                                     to_save=to_save, x_label=subgroup1, y_label=subgroup2,
+                                                     to_show=to_show, use_title=True)
+    return var_dfs

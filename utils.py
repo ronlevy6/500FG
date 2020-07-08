@@ -21,6 +21,22 @@ def apply_angle(df, x_col, y_col, x0, y0,):
     return df.apply(lambda row: get_angle_in_circle(row[x_col], row[y_col], x0, y0), axis=1)
 
 
+def rotate(df, x_col, y_col, x0, y0, angle=np.pi/4, same_idx=True):
+    # center - x0,y0
+    n = len(df[x_col])
+    x_data = df[x_col].values
+    y_data = df[y_col].values
+    x0_arr = x0 * np.ones(n)
+    y0_arr = y0 * np.ones(n)
+    angle_arr = angle * np.ones(n)
+    x_new = x0_arr + (x_data - x0_arr)*np.cos(angle_arr) - (y_data - y0_arr)*np.sin(angle_arr)
+    y_new = y0_arr + (x_data - x0_arr)*np.sin(angle_arr) + (y_data - y0_arr)*np.cos(angle_arr)
+    ret_df = pd.DataFrame({x_col: x_new, y_col: y_new})
+    if same_idx:
+        ret_df.index = df.index
+    return ret_df
+
+
 def get_amit_anchors():
     with open('/export/home/ronlevy/projects/500FG_GTEx/amits_anchors_genes/selectedGenesForLupus.txt') as f:
         amits_filtered_data = f.readlines()
@@ -64,6 +80,13 @@ def assign_age_group(val):
         raise
 
 
+def assign_death_group(row):
+    if row.DTHHRDY in (1,2):
+        return 'Good'
+    else:
+        return 'Bad'
+
+
 def dedup_space_df(space_df, subset_cols=None):
     idx_name = space_df.index.name
     if idx_name is None:
@@ -91,13 +114,14 @@ def compare_state_dfs(df1, df2, verbose=False, round_dig=5):
 def correlate_between_dfs(df1, df2, verbose=True, title=None, col_label='column', idx_label='index',
                           min_periods=25, hist_kwargs={}):
     shared_columns = list(set(df1.columns) & set(df2.columns))
+    shared_indexes = list(set(df1.index) & set(df2.index))
     res_d = dict()
     for idx in [0, 1]:
         res_d[idx] = dict()
         df1_fixed = df1.applymap(lambda val: by_idx(val, idx)).sort_index()
         df2_fixed = df2.applymap(lambda val: by_idx(val, idx)).sort_index()
-        df1_fixed = df1_fixed[shared_columns]
-        df2_fixed = df2_fixed[shared_columns]
+        df1_fixed = df1_fixed.loc[shared_indexes, shared_columns]
+        df2_fixed = df2_fixed.loc[shared_indexes, shared_columns]
         corrs_col = dict()
         corrs_idx = dict()
 
@@ -123,3 +147,23 @@ def correlate_between_dfs(df1, df2, verbose=True, title=None, col_label='column'
         res_d[idx][col_label] = corrs_col
         res_d[idx][idx_label] = corrs_idx
     return res_d
+
+
+def extract_correlations(clustering_res, corr_clustering_res_idx=None):
+    # in case more than one clustering method si running, corr_clustering_res_idx will hold it's index in the dictionary
+    state0_corrs = dict()
+    state1_corrs = dict()
+    for k_tup in clustering_res:
+        if corr_clustering_res_idx is not None:
+            inner_d_to_use = clustering_res[k_tup][corr_clustering_res_idx]
+        else:
+            inner_d_to_use = clustering_res[k_tup]
+        for state_idx, (curr_corr_df, _, _) in inner_d_to_use.items():
+            tmp_d = curr_corr_df.to_dict()
+            for t1, t1_corrs in tmp_d.items():
+                for t2, t1_t2_corr in t1_corrs.items():
+                    if state_idx == 0:
+                        state0_corrs.setdefault(tuple(sorted([t1,t2])), dict())[k_tup] = t1_t2_corr
+                    else:
+                        state1_corrs.setdefault(tuple(sorted([t1,t2])), dict())[k_tup] = t1_t2_corr
+    return state0_corrs, state1_corrs

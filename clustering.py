@@ -104,7 +104,7 @@ def tissue_clustering(curr_data, main_title, patient_data, extract_cluster=False
     return s1_data, s2_data
 
 
-def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh=5, to_plot=True,
+def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh=5, extract_cluster=False, to_plot=True,
                             to_save=None, to_show=True, save_pdf=True, tight_layout=True, bbox_inches='tight'):
     curr_state_df = states_df.applymap(lambda val: by_idx(val, state_idx))
     corr_df = curr_state_df.transpose().corr()
@@ -127,9 +127,11 @@ def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh
             dir_to_save = os.path.join(to_save, curr_title) if to_save is not None else None
             save_and_show_figure(dir_to_save, save_pdf=save_pdf, to_show=to_show,
                                  tight_layout=tight_layout, bbox_inches=bbox_inches)
-
-        corr_cluster = get_cluster_from_clustermap_result(g, is_row=True, title=curr_title + ' clusters',
-                                                          to_save=to_save, to_show=to_show, save_pdf=save_pdf)
+        if extract_cluster:
+            corr_cluster = get_cluster_from_clustermap_result(g, is_row=True, title=curr_title + ' clusters',
+                                                              to_save=to_save, to_show=to_show, save_pdf=save_pdf)
+        else:
+            corr_cluster = None
     else:
         g = None
         corr_cluster = None

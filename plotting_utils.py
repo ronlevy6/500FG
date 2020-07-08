@@ -60,7 +60,7 @@ def smart_print(is_mean, is_std, is_max, is_builtin, to_filter, evr):
 
 
 def plot_states_scatter_subplots(main_title, input_data, patients_to_use, sub_tissues_to_use, patient_data,
-                                  hue, hue_order, figsize=(25, 35), to_save=None, legend_loc=(0.4, 0.8),
+                                  hue, hue_order, figsize=(25, 35), to_save=None, save_pdf=False, legend_loc=(0.4, 0.8),
                                   progress_print=False, to_show=True, title_fontsize=28, ylabel_fontsize=14,
                                  scatter_kwargs={}):
     """
@@ -107,7 +107,8 @@ def plot_states_scatter_subplots(main_title, input_data, patients_to_use, sub_ti
     leg = fig.legend(handles, labels, loc='center', prop={'size': 19}, bbox_to_anchor=legend_loc, ncol=2)
     if to_save is not None:
         plt.savefig(to_save + '.jpg')
-        plt.savefig(to_save + '.pdf')
+        if save_pdf:
+            plt.savefig(to_save + '.pdf')
     if to_show:
         plt.show()
     plt.close()
@@ -246,8 +247,10 @@ def plot_missing_data(data, title, figsize=(12,8), to_save=None, to_show=True, s
     save_and_show_figure(path_to_save, to_show=to_show, save_pdf=save_pdf, tight_layout=True, bbox_inches=None)
 
 
-def subplots_of_correlation(d, tissues_tup, bootstrap_mode, figsize=(16, 16), to_save=None, to_show=None, save_pdf=False):
+def subplots_of_correlation(d, tissues_tup, bootstrap_mode, figsize=None, to_save=None, to_show=None, save_pdf=False):
     col_tissues, row_tissues = tissues_tup
+    if figsize is None:
+        figsize = len(col_tissues)*2.2, len(row_tissues) * 2.2
     # sharey only at correlation
     fig, axs = plt.subplots(nrows=len(row_tissues), ncols=len(col_tissues), figsize=figsize, sharey=not bootstrap_mode)
     for t1, t2 in itertools.product(row_tissues, col_tissues):
@@ -257,7 +260,7 @@ def subplots_of_correlation(d, tissues_tup, bootstrap_mode, figsize=(16, 16), to
                 corr_vals = []
             else:
                 try:
-                    corr_vals = [v[0] for v in d[tuple(sorted([t1, t2]))]]
+                    corr_vals = [v for v in d[tuple(sorted([t1, t2]))].values()]
                 except KeyError:
                     corr_vals = []
             curr_ax.boxplot(corr_vals, medianprops=dict(color='black'), patch_artist=True,

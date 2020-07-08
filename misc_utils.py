@@ -138,3 +138,12 @@ def save_and_show_figure(full_path_without_extension, to_show=True, save_pdf=Fal
     if to_show:
         plt.show()
     plt.close()
+
+
+def fix_query_txt(query_txt):
+    query_txt = query_txt.strip()
+    if len(query_txt) == 0:
+        return query_txt
+    if query_txt[0] == "&":
+        return query_txt[1:].strip()
+    return query_txt
