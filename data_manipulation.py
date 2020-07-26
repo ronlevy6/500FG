@@ -206,7 +206,7 @@ def get_anchors(space_df, x_col, y_col, center_x, center_y, number_of_sections=1
 
     for map_section in space_df['section_num'].unique():
         curr_df = space_df[space_df['section_num'] == map_section]
-        curr_df.sort_values(by=['dist_from_center'], inplace=True, ascending=False)
+        curr_df = curr_df.sort_values(by=['dist_from_center'], ascending=False)
         anchor_genes_idx += curr_df.head(n=int(curr_df.shape[0] * anchor_pct_of_data))['overall_idx'].to_list()
 
     # extract gene names

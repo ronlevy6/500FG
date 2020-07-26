@@ -105,7 +105,9 @@ def tissue_clustering(curr_data, main_title, patient_data, extract_cluster=False
 
 
 def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh=5, extract_cluster=False, to_plot=True,
-                            to_save=None, to_show=True, save_pdf=True, tight_layout=True, bbox_inches='tight'):
+                            to_save=None, to_show=True, save_pdf=True, tight_layout=True, bbox_inches='tight',
+                            heatmap_kws={'xticklabels': 1, 'yticklabels': 1}):
+
     curr_state_df = states_df.applymap(lambda val: by_idx(val, state_idx))
     corr_df = curr_state_df.transpose().corr()
     corr_df = corr_df[sorted(list(corr_df.columns))].sort_index()
@@ -120,7 +122,7 @@ def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh
         to_del = set(corr_df[corr_df.isna().sum() > tissues_del_thresh].index)
         corr_df = corr_df.drop(columns=to_del).drop(index=to_del)
     if to_plot:
-        g = sns.clustermap(corr_df, cmap='bwr', vmin=-1, vmax=1)
+        g = sns.clustermap(corr_df, cmap='bwr', vmin=-1, vmax=1, **heatmap_kws)
         plt.title(curr_title)
 
         if to_save is not None or to_show:

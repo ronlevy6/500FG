@@ -5,6 +5,7 @@ import pandas as pd
 import itertools
 from data_manipulation import filter_patient_df
 from misc_utils import undo_print_pretty, fix_text, print_pretty, save_and_show_figure
+from utils import by_idx
 
 
 def plot_df(df, x, y, to_filter=False, index_filter_vals=None, title=None, to_color=False, colors=None):
@@ -59,8 +60,38 @@ def smart_print(is_mean, is_std, is_max, is_builtin, to_filter, evr):
     print(to_print)
 
 
+def calc_scatter_x_y_lims(input_data, patient_data, patients_to_use=None):
+    s1_max = None
+    s2_max = None
+    s1_min = None
+    s2_min = None
+    for name, states_df, filtering_dict in input_data:
+        df_to_use = filter_patient_df(patient_data, filtering_dict)
+        if patients_to_use is not None:
+            states_df = states_df[set(patients_to_use) & set(states_df.columns)]
+        df = states_df[df_to_use.index]
+        s1 = df[[c for c in df.columns if "GTEX" in c]].applymap(lambda val: by_idx(val, 0))
+        s2 = df[[c for c in df.columns if "GTEX" in c]].applymap(lambda val: by_idx(val, 1))
+        curr_max_s1 = s1.max().max()
+        if s1_max is None or curr_max_s1 > s1_max:
+            s1_max = curr_max_s1
+
+        curr_max_s2 = s2.max().max()
+        if s2_max is None or curr_max_s2 > s2_max:
+            s2_max = curr_max_s2
+
+        curr_min_s1 = s1.min().min()
+        if s1_min is None or curr_min_s1 < s1_min:
+            s1_min = curr_min_s1
+
+        curr_min_s2 = s2.min().min()
+        if s2_min is None or curr_min_s2 < s2_min:
+            s2_min = curr_min_s2
+    return (s1_min, s1_max), (s2_min, s2_max)
+
+
 def plot_states_scatter_subplots(main_title, input_data, patients_to_use, sub_tissues_to_use, patient_data,
-                                  hue, hue_order, figsize=(25, 35), to_save=None, save_pdf=False, legend_loc=(0.4, 0.8),
+                                  hue, hue_order, same_lims=True, lim_const=1.1, figsize=(25, 35), to_save=None, save_pdf=False, legend_loc=(0.4, 0.8),
                                   progress_print=False, to_show=True, title_fontsize=28, ylabel_fontsize=14,
                                  scatter_kwargs={}):
     """
@@ -71,6 +102,10 @@ def plot_states_scatter_subplots(main_title, input_data, patients_to_use, sub_ti
     input_data - [(column title1, appropriate states df to use (normal/anchor/smoothen..), filtering condition dict1),
                  (column title2, df2, filtering_dict2)..]
     """
+    if same_lims:
+        x_lim, y_lim = calc_scatter_x_y_lims(input_data, patient_data, patients_to_use)
+        x_lim = tuple(v*lim_const for v in x_lim)
+        y_lim = tuple(v*lim_const for v in y_lim)
     fig, axs = plt.subplots(nrows=len(sub_tissues_to_use), ncols=len(input_data), figsize=figsize,
                             gridspec_kw={'hspace': 0.5}, sharex=True, sharey=True)
     fig.suptitle(main_title, fontsize=50)
@@ -81,6 +116,8 @@ def plot_states_scatter_subplots(main_title, input_data, patients_to_use, sub_ti
         if patients_to_use is not None:
             states_df = states_df[set(patients_to_use) & set(states_df.columns)]
         df_to_use = states_df.transpose().merge(df_to_use, left_index=True, right_index=True)
+        # TODO - fix axis to be the same for all figures. potential problems with outliers..
+        #  there's example in data_manipulation.var_analysis
         for tissue_idx, sub_tissue in enumerate(sorted(sub_tissues_to_use)):
             curr_row = tissue_idx
             curr_col = idx
@@ -94,6 +131,9 @@ def plot_states_scatter_subplots(main_title, input_data, patients_to_use, sub_ti
 
             a = sns.scatterplot(x='s1', y='s2', hue=hue, data=curr_data, ax=curr_ax, hue_order=hue_order,
                                 **scatter_kwargs)
+            if same_lims:
+                curr_ax.set_xlim(x_lim)
+                curr_ax.set_ylim(y_lim)
             handles, labels = curr_ax.get_legend_handles_labels()
             try:
                 a.legend_.remove()
