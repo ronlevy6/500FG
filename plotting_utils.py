@@ -69,9 +69,9 @@ def calc_scatter_x_y_lims(input_data, patient_data, patients_to_use=None):
         df_to_use = filter_patient_df(patient_data, filtering_dict)
         if patients_to_use is not None:
             states_df = states_df[set(patients_to_use) & set(states_df.columns)]
-        df = states_df[df_to_use.index]
-        s1 = df[[c for c in df.columns if "GTEX" in c]].applymap(lambda val: by_idx(val, 0))
-        s2 = df[[c for c in df.columns if "GTEX" in c]].applymap(lambda val: by_idx(val, 1))
+        df = states_df[set(df_to_use.index) & set(states_df.columns)]
+        s1 = df.applymap(lambda val: by_idx(val, 0))
+        s2 = df.applymap(lambda val: by_idx(val, 1))
         curr_max_s1 = s1.max().max()
         if s1_max is None or curr_max_s1 > s1_max:
             s1_max = curr_max_s1

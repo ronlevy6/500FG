@@ -379,7 +379,12 @@ def var_analysis_tmp_df(x_data, y_data, min_num_of_points, x_label, y_label, fil
 
 def var_analysis(x_data, y_data, patient_data, x_label='x', y_label='y', col_to_sort_by=None, chunk_size=10,
                  min_num_of_points=10, title=None, use_title=False, fill_missing_vals=False,
-                 to_plot=True, to_save=None, to_show=True):
+                 to_plot=True, to_save=None, to_show=True, create_subdir=None):
+    if create_subdir is not None and to_save is not None:
+        new_dir = os.path.join(to_save, create_subdir)
+        os.makedirs(new_dir, exist_ok=True)
+        to_save = new_dir
+
     full_markers = ['o', '<', '>']
     # Prepare the variance df
     df_to_use = None
@@ -437,7 +442,12 @@ def var_analysis(x_data, y_data, patient_data, x_label='x', y_label='y', col_to_
 
 
 def var_analysis_within_group(data_to_use, data_label, patient_data, col_to_sort_by, title=None,chunk_size=20,
-                              min_num_of_points=15, to_save=None, to_show=False):
+                              min_num_of_points=15, to_save=None, to_show=False, create_subdir=None):
+    if create_subdir is not None and to_save is not None:
+        new_dir = os.path.join(to_save, create_subdir)
+        os.makedirs(new_dir, exist_ok=True)
+        to_save = new_dir
+
     var_dfs = dict()
     for subgroup1, subgroup2 in itertools.combinations(patient_data[col_to_sort_by].unique(), r=2):
         if subgroup1 == subgroup2:
