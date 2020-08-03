@@ -122,7 +122,8 @@ def plot_states_scatter_subplots(main_title, input_data, patients_to_use, sub_ti
             curr_row = tissue_idx
             curr_col = idx
             curr_ax = axs[curr_row][curr_col]
-            curr_data = df_to_use[[sub_tissue, 'AGE', 'death_reason', hue]].dropna()
+            cols_to_use = set([sub_tissue, 'AGE', 'death_reason', hue]) & set(df_to_use.columns)
+            curr_data = df_to_use[cols_to_use].dropna()
             curr_data['s1'] = curr_data[sub_tissue].apply(lambda x: x[0])
             curr_data['s2'] = curr_data[sub_tissue].apply(lambda x: x[1])
             # add lines for x=y=0

@@ -94,10 +94,12 @@ def dedup_space_df(space_df, subset_cols=None):
     return space_df.reset_index().drop_duplicates(subset=subset_cols).set_index(idx_name)
 
 
-def compare_state_dfs(df1, df2, verbose=False, round_dig=5):
+def compare_state_dfs(df1, df2, verbose=False, round_dig=5, cols_to_use=None):
     # the fillna is to be able to compare nans
     lst = []
     shared_columns = list(set(df1.columns) & set(df2.columns))
+    if cols_to_use is not None:
+        shared_columns = list(set(shared_columns) & set(cols_to_use))
     for idx in [0, 1]:
         df1_fixed = df1.applymap(lambda val: by_idx(val, idx)).fillna(666).applymap(lambda val: round(val, round_dig))
         df2_fixed = df2.applymap(lambda val: by_idx(val, idx)).fillna(666).applymap(lambda val: round(val, round_dig))
