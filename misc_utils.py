@@ -1,6 +1,7 @@
 import uuid
 import os
 import pandas as pd
+import numpy as np
 from datetime import datetime
 import matplotlib.pyplot as plt
 
@@ -147,3 +148,7 @@ def fix_query_txt(query_txt):
     if query_txt[0] == "&":
         return query_txt[1:].strip()
     return query_txt
+
+
+def dropna_ndarray(arr):
+    return arr[~np.isnan(arr)]

@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from IPython import get_ipython
+import os
 
 IS_NOTEBOOK = 'zmqshell' in str(get_ipython())
 
@@ -57,6 +58,13 @@ def rename_patient_name(df):
     return df
 
 
+def read_df(data_dir, f):
+    df = pd.read_pickle(os.path.join(data_dir, f))
+    df = df.astype(np.float64)
+    rename_patient_name(df)
+    return df
+
+
 def by_idx(val, idx):
     """
     return val[idx] in case val is not None
@@ -67,6 +75,12 @@ def by_idx(val, idx):
     if pd.isna(val) or idx is None:
         return val
     return val[idx]
+
+
+def get_states(states_df):
+    s1 = states_df.applymap(lambda val: by_idx(val, 0))
+    s2 = states_df.applymap(lambda val: by_idx(val, 1))
+    return s1, s2
 
 
 def assign_age_group(val):
