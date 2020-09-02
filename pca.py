@@ -10,7 +10,7 @@ def normalize(df, is_mean, is_std, is_max, is_biultin):
         assert not is_std
         assert not is_max
         assert not is_mean
-        df_normalized = StandardScaler().fit_transform(df)
+        df_normalized = pd.DataFrame(StandardScaler().fit_transform(df), index=df.index, columns=df.columns)
 
     else:
         if is_mean:
@@ -43,7 +43,8 @@ def do_pca(df_normalized):
     return principalDf, pca.explained_variance_ratio_, pca
 
 
-def run_it_all(df, is_mean=False, is_std=True, is_max=False, is_builtin=False, to_filter=False, to_color=False):
+def run_it_all(df, is_mean=False, is_std=True, is_max=False, is_builtin=False, to_filter=False, to_color=False,
+               to_plot=True):
     try:
         normalized_df = normalize(df, is_mean, is_std, is_max, is_builtin)
         normalized_df.dropna(axis=0, inplace=True)
@@ -52,7 +53,8 @@ def run_it_all(df, is_mean=False, is_std=True, is_max=False, is_builtin=False, t
         print("after pca")
         principalDf.index = normalized_df.index
         smart_print(is_mean, is_std, is_max, is_builtin, to_filter, evr)
-        plot_df(principalDf, x='pc1', y='pc2', to_filter=to_filter, to_color=to_color)
+        if to_plot:
+            plot_df(principalDf, x='pc1', y='pc2', to_filter=to_filter, to_color=to_color)
         return principalDf, evr, pca
     except AssertionError as error:
         pass

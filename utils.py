@@ -22,7 +22,7 @@ def apply_angle(df, x_col, y_col, x0, y0,):
     return df.apply(lambda row: get_angle_in_circle(row[x_col], row[y_col], x0, y0), axis=1)
 
 
-def rotate(df, x_col, y_col, x0, y0, angle=np.pi/4, same_idx=True):
+def rotate_around_x0_y0(df, x_col, y_col, x0, y0, angle=np.pi/4, same_idx=True):
     # center - x0,y0
     n = len(df[x_col])
     x_data = df[x_col].values
@@ -36,6 +36,26 @@ def rotate(df, x_col, y_col, x0, y0, angle=np.pi/4, same_idx=True):
     if same_idx:
         ret_df.index = df.index
     return ret_df
+
+
+def rotate(df, x_col, y_col, angle, in_radians, return_all_cols=True):
+    df_to_rotate = df[[x_col, y_col]]
+    if not in_radians:
+        theta = np.radians(angle)
+    else:
+        theta = angle
+    c, s = np.cos(theta), np.sin(theta)
+    R = np.array(((c, -s), (s, c)))
+    comp1 = df_to_rotate.apply(lambda x: np.linalg.solve(R, x)[0], axis=1)
+    comp2 = df_to_rotate.apply(lambda x: np.linalg.solve(R, x)[1], axis=1)
+    df_res = pd.concat([comp1, comp2], axis=1)
+    df_res.columns = [x_col, y_col]
+    if return_all_cols:
+        assert df_res.index.tolist() == df.index.tolist()
+        for col in df.columns:
+            if col not in df_res.columns:
+                df_res[col] = df[col]
+    return df_res
 
 
 def get_amit_anchors():
