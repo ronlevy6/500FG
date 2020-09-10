@@ -58,7 +58,7 @@ def clustermap_with_color(states_df, idx_to_plot, patient_data, color_col, title
 
 
 def get_cluster_from_clustermap_result(clustermap_res, is_row, title, color_thresh_const=0.6, leaf_rotation=90,
-                                       figsize=(15, 6), to_save=None, to_show=True, save_pdf=False):
+                                       figsize=(15, 6), to_save=None, to_show=True, save_pdf=False, join_path=True):
     """
     prints clustering based on clustermap results
     """
@@ -73,7 +73,10 @@ def get_cluster_from_clustermap_result(clustermap_res, is_row, title, color_thre
     dn = hierarchy.dendrogram(Z, labels=labels,
                               color_threshold=color_thresh_const*max(Z[:,2]), leaf_rotation=leaf_rotation)
     if to_save is not None or to_show:
-        dir_to_save = os.path.join(to_save, title) if to_save is not None else None
+        if join_path:
+            dir_to_save = os.path.join(to_save, title) if to_save is not None else None
+        else:
+            dir_to_save = to_save
         save_and_show_figure(dir_to_save, save_pdf=save_pdf, to_show=to_show, tight_layout=True, bbox_inches=None)
     return dn
 
@@ -107,31 +110,56 @@ def tissue_clustering(curr_data, main_title, patient_data, extract_cluster=False
 def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh=5, extract_cluster=False, to_plot=True,
                             to_save=None, to_show=True, save_pdf=True, tight_layout=True, bbox_inches='tight',
                             heatmap_kws={'xticklabels': 1, 'yticklabels': 1}):
+    if isinstance(state_idx, int) and isinstance(states_df, pd.DataFrame):
+        curr_state_df = states_df.applymap(lambda val: by_idx(val, state_idx))
+        corr_df = curr_state_df.transpose().corr()
+        curr_title = 'Correlation between tissues - {} s{}'.format(main_title, state_idx + 1)
+        file_title = 'Correlation between tissues - s{}'.format(state_idx + 1)
+    else:
+        if not isinstance(state_idx, int):
+            lst_of_dfs = [states_df.applymap(lambda val: by_idx(val, curr_state_idx)) for curr_state_idx in state_idx]
+            df_names = ['df{}'.format(curr_state_idx + 1) for curr_state_idx in state_idx]
+        else:
+            lst_of_dfs = [curr_states_df.applymap(lambda val: by_idx(val, state_idx)) for curr_states_df in states_df]
+            df_names = ['df{}'.format(i + 1) for i in range(len(states_df))]
 
-    curr_state_df = states_df.applymap(lambda val: by_idx(val, state_idx))
-    corr_df = curr_state_df.transpose().corr()
+        curr_state_df = pd.concat(lst_of_dfs, axis=0, keys=df_names)
+        corr_df = curr_state_df.transpose().corr().loc[tuple(df_names[::-1])]
+        curr_title = 'Correlation between tissues - {} states {}'.format(main_title, np.array(state_idx) + 1)
+        file_title = 'Correlation between tissues - states {}'.format(np.array(state_idx) + 1)
+
     corr_df = corr_df[sorted(list(corr_df.columns))].sort_index()
 
     # remove all nans tissues
     to_del = corr_df[corr_df.isna().sum() == corr_df.shape[0]].index
     corr_df = corr_df.drop(columns=to_del).drop(index=to_del)
 
-    curr_title = 'Correlation between tissues - {} s{}'.format(main_title, state_idx + 1)
     while corr_df.isna().sum().sum() and tissues_del_thresh > 0:
         tissues_del_thresh -= 1
         to_del = set(corr_df[corr_df.isna().sum() > tissues_del_thresh].index)
         corr_df = corr_df.drop(columns=to_del).drop(index=to_del)
     if to_plot:
-        g = sns.clustermap(corr_df, cmap='bwr', vmin=-1, vmax=1, **heatmap_kws)
+        if corr_df.equals(corr_df.transpose()):
+            # corr df is symmetric
+            g = sns.clustermap(corr_df, cmap='bwr', vmin=-1, vmax=1, **heatmap_kws)
+        else:
+            g1 = sns.clustermap(corr_df, cmap='bwr', vmin=-1, vmax=1, **heatmap_kws, col_cluster=False)
+            plt.close()
+            row_order_by_name = [corr_df.columns[i] for i in g1.dendrogram_row.reordered_ind]
+            corr_df_second_try = corr_df[row_order_by_name]
+            g = sns.clustermap(corr_df_second_try, cmap='bwr', vmin=-1, vmax=1, **heatmap_kws, col_cluster=False)
+
         plt.title(curr_title)
 
         if to_save is not None or to_show:
-            dir_to_save = os.path.join(to_save, curr_title) if to_save is not None else None
+            dir_to_save = os.path.join(to_save, file_title) if to_save is not None else None
             save_and_show_figure(dir_to_save, save_pdf=save_pdf, to_show=to_show,
                                  tight_layout=tight_layout, bbox_inches=bbox_inches)
         if extract_cluster:
+            dir_to_save = os.path.join(to_save, file_title+' clusters') if to_save is not None else None
             corr_cluster = get_cluster_from_clustermap_result(g, is_row=True, title=curr_title + ' clusters',
-                                                              to_save=to_save, to_show=to_show, save_pdf=save_pdf)
+                                                              to_save=dir_to_save, to_show=to_show,
+                                                              save_pdf=save_pdf, join_path=False)
         else:
             corr_cluster = None
     else:
