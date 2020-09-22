@@ -203,3 +203,24 @@ def extract_correlations(clustering_res, corr_clustering_res_idx=None):
                     else:
                         state1_corrs.setdefault(tuple(sorted([t1,t2])), dict())[k_tup] = t1_t2_corr
     return state0_corrs, state1_corrs
+
+
+def make_subdir_from_key(k):
+    subdir = ""
+    gender, age_group, death_group, states_df_type, to_filter = k
+    subdir += "{} ".format(states_df_type)
+
+    if gender == 'All':
+        subdir += "Both sexes, "
+    else:
+        subdir += "{}, ".format(gender)
+
+    if age_group == 'All':
+        subdir += "all ages, "
+    else:
+        subdir += "{}, ".format(age_group)
+
+    subdir += "{} death types".format(death_group)
+    if to_filter:
+        subdir += ' filtered'
+    return subdir

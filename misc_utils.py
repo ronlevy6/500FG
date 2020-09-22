@@ -152,3 +152,16 @@ def fix_query_txt(query_txt):
 
 def dropna_ndarray(arr):
     return arr[~np.isnan(arr)]
+
+
+def filter_df(df, tissues_del_thresh=5):
+    # remove all nans tissues
+    to_del = df[df.isna().sum() == df.shape[0]].index
+    df = df.drop(columns=to_del).drop(index=to_del)
+
+    while df.isna().sum().sum() and tissues_del_thresh > 0:
+        tissues_del_thresh -= 1
+        to_del = set(df[df.isna().sum() > tissues_del_thresh].index)
+        df = df.drop(columns=to_del).drop(index=to_del)
+
+    return df

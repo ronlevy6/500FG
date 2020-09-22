@@ -4,7 +4,7 @@ import seaborn as sns
 import pandas as pd
 import itertools
 from data_manipulation import filter_patient_df
-from misc_utils import undo_print_pretty, fix_text, print_pretty, save_and_show_figure
+from misc_utils import undo_print_pretty, fix_text, print_pretty, save_and_show_figure, filter_df
 from utils import by_idx
 
 
@@ -330,3 +330,21 @@ def subplots_of_correlation(d, tissues_tup, bootstrap_mode, figsize=None, to_sav
     if to_show:
         plt.show()
     plt.close()
+
+
+def plot_reg_res(reg_res_df, main_title, state_idx,
+                 tissues_del_thresh=5, heatmap_kws={'xticklabels': 1, 'yticklabels': 1},
+                 to_save=None, to_show=False, save_pdf=False, tight_layout=True, bbox_inches='tight'):
+    reg_res_df = filter_df(reg_res_df, tissues_del_thresh=tissues_del_thresh)
+
+    g = sns.clustermap(reg_res_df, cmap='bwr', vmin=-1, vmax=1, **heatmap_kws)
+
+    file_title = 'Regression between tissues - s{}'.format(state_idx + 1)
+    curr_title = 'Regression between tissues - {} s{}'.format(main_title, state_idx + 1)
+    plt.title(curr_title)
+
+    if to_save is not None or to_show:
+        dir_to_save = os.path.join(to_save, file_title) if to_save is not None else None
+        save_and_show_figure(dir_to_save, save_pdf=save_pdf, to_show=to_show,
+                             tight_layout=tight_layout, bbox_inches=bbox_inches)
+    return g

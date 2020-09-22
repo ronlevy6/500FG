@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from utils import by_idx
 from plotting_utils import plot_missing_data
-from misc_utils import save_and_show_figure
+from misc_utils import save_and_show_figure, filter_df
 
 
 def dist(v1, v2, min_vals_pct=0.4, penalty=10):
@@ -129,15 +129,8 @@ def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh
         file_title = 'Correlation between tissues - states {}'.format(np.array(state_idx) + 1)
 
     corr_df = corr_df[sorted(list(corr_df.columns))].sort_index()
+    corr_df = filter_df(corr_df, tissues_del_thresh=tissues_del_thresh)
 
-    # remove all nans tissues
-    to_del = corr_df[corr_df.isna().sum() == corr_df.shape[0]].index
-    corr_df = corr_df.drop(columns=to_del).drop(index=to_del)
-
-    while corr_df.isna().sum().sum() and tissues_del_thresh > 0:
-        tissues_del_thresh -= 1
-        to_del = set(corr_df[corr_df.isna().sum() > tissues_del_thresh].index)
-        corr_df = corr_df.drop(columns=to_del).drop(index=to_del)
     if to_plot:
         if corr_df.equals(corr_df.transpose()):
             # corr df is symmetric
