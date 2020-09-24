@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from IPython import get_ipython
 import os
+from misc_utils import fix_query_txt, drop_na_by_pct
 
 IS_NOTEBOOK = 'zmqshell' in str(get_ipython())
 
@@ -224,3 +225,65 @@ def make_subdir_from_key(k):
     if to_filter:
         subdir += ' filtered'
     return subdir
+
+
+def get_data_by_groups(patient_data, states_df_td, genders_to_use=['Male', 'Female', 'All'],
+                       death_type_to_use=['Good', 'Bad', 'All'], ages_to_use=['Old', 'Normal', 'Young', 'All'],
+                       states_df_type_to_use=['Anchor'], create_dir=None, verbose=True, pct_of_not_nulls=0.2):
+    ret_d = dict()
+
+    for gender in genders_to_use:
+        if verbose:
+            print(gender)
+
+        if create_dir is not None:
+            new_dir = os.path.join(create_dir, gender)
+            os.makedirs(new_dir, exist_ok=True)
+
+        if gender == 'All':
+            query_gender = ''
+            title_gender = 'Both sexes,'
+        else:
+            query_gender = "sex_name=='{}'".format(gender)
+            title_gender = '{},'.format(gender)
+
+        for age_group in ages_to_use:
+            if age_group == 'All':
+                query_gender_age = query_gender
+                title_gender_age = title_gender + ' all ages,'
+            else:
+                query_gender_age = query_gender + " & AGE_group=='{}'".format(age_group)
+                title_gender_age = title_gender + ' {},'.format(age_group)
+
+            for death_group in death_type_to_use:
+                if death_group == 'All':
+                    query_gender_age_death = query_gender_age
+                    title_gender_age_death = title_gender_age + ' all death types'
+                else:
+                    query_gender_age_death = query_gender_age + " & Death_group=='{}'".format(death_group)
+                    title_gender_age_death = title_gender_age + ' {} death type'.format(death_group)
+
+                final_query = fix_query_txt(query_gender_age_death)
+
+                if len(final_query) == 0:  # no filtering
+                    patient_data_to_use = patient_data
+                else:
+                    patient_data_to_use = patient_data.query(final_query)
+                for states_df_type, states_df_to_use in states_df_td.items():
+                    if states_df_type not in states_df_type_to_use:
+                        continue
+                    for to_filter in [True, False]:
+                        filtered_states_df_to_use = states_df_to_use[patient_data_to_use.index]
+                        final_title = states_df_type + ' ' + title_gender_age_death
+                        if to_filter:
+                            filtered_states_df_to_use = drop_na_by_pct(filtered_states_df_to_use, 1,
+                                                                       pct_of_not_nulls=pct_of_not_nulls, to_print=False)
+                            final_title += ' filtered'
+
+                        if create_dir is not None:
+                            final_dir = os.path.join(new_dir, final_title,)
+                            os.makedirs(final_dir, exist_ok=True)
+
+                        curr_k = gender, age_group, death_group, states_df_type, to_filter
+                        ret_d[curr_k] = filtered_states_df_to_use, patient_data_to_use, final_title, final_dir
+    return ret_d
