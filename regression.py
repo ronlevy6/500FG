@@ -47,8 +47,12 @@ def make_df(dict_to_use, make_symmetric):
     return dict_of_dfs
 
 
-def filter_and_organize_reg_dict(reg_dict, separate_s1_s2=True, create_dfs=True, make_symmetric=True):
+def filter_and_organize_reg_dict(reg_dict, separate_s1_s2=True, create_dfs=True, make_symmetric=True, use_attr=False):
     filtered_reg_dict = dict()
+    if use_attr:
+        key_tup_to_use = 4
+    else:
+        key_tup_to_use = 3
     for k, v in tqdm(reg_dict.items()):
         if v is not None:
             new_v = v.params, v.pvalues, v.f_pvalue
@@ -57,8 +61,11 @@ def filter_and_organize_reg_dict(reg_dict, separate_s1_s2=True, create_dfs=True,
         filtered_reg_dict_s1 = dict()
         filtered_reg_dict_s2 = dict()
         for k, v in tqdm(filtered_reg_dict.items()):
-            keys = k[:-3]
-            t1, t2, idx = k[-3:]
+            keys = k[:-key_tup_to_use]
+            if use_attr:
+                t1, t2, idx, attr = k[-key_tup_to_use:]
+            else:
+                t1, t2, idx = k[-key_tup_to_use:]
             params, variables_pvalues, f_pvalue = v
             if t1 not in params and t2 not in params:
                 continue
@@ -67,16 +74,21 @@ def filter_and_organize_reg_dict(reg_dict, separate_s1_s2=True, create_dfs=True,
             except KeyError:
                 curr_val = params[t2]
             if idx == 0:
-                filtered_reg_dict_s1.setdefault(keys, dict()).setdefault(t1, dict())[t2] = curr_val
+                curr_d = filtered_reg_dict_s1
             else:
-                filtered_reg_dict_s2.setdefault(keys, dict()).setdefault(t1, dict())[t2] = curr_val
+                curr_d = filtered_reg_dict_s2
+
+            if use_attr:
+                curr_d.setdefault(keys, dict()).setdefault(t1, dict()).setdefault(t2, dict())[attr] = curr_val
+            else:
+                curr_d.setdefault(keys, dict()).setdefault(t1, dict())[t2] = curr_val
 
         if create_dfs:
             filtered_reg_dict_s1_dfs = make_df(filtered_reg_dict_s1, make_symmetric)
             filtered_reg_dict_s2_dfs = make_df(filtered_reg_dict_s2, make_symmetric)
-            return filtered_reg_dict_s1_dfs, filtered_reg_dict_s2_dfs
+            return filtered_reg_dict_s1_dfs, filtered_reg_dict_s2_dfs, filtered_reg_dict
         else:
-            return filtered_reg_dict_s1, filtered_reg_dict_s2
+            return filtered_reg_dict_s1, filtered_reg_dict_s2, filtered_reg_dict
     else:
         return filtered_reg_dict
 

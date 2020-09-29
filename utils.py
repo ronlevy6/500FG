@@ -258,10 +258,10 @@ def get_data_by_groups(patient_data, states_df_td, genders_to_use=['Male', 'Fema
             for death_group in death_type_to_use:
                 if death_group == 'All':
                     query_gender_age_death = query_gender_age
-                    title_gender_age_death = title_gender_age + ' all death types'
+                    title_gender_age_death = title_gender_age + ' all death types,'
                 else:
                     query_gender_age_death = query_gender_age + " & Death_group=='{}'".format(death_group)
-                    title_gender_age_death = title_gender_age + ' {} death type'.format(death_group)
+                    title_gender_age_death = title_gender_age + ' {} death type,'.format(death_group)
 
                 final_query = fix_query_txt(query_gender_age_death)
 
@@ -274,7 +274,7 @@ def get_data_by_groups(patient_data, states_df_td, genders_to_use=['Male', 'Fema
                         continue
                     for to_filter in [True, False]:
                         filtered_states_df_to_use = states_df_to_use[patient_data_to_use.index]
-                        final_title = states_df_type + ' ' + title_gender_age_death
+                        final_title = states_df_type + ', ' + title_gender_age_death
                         if to_filter:
                             filtered_states_df_to_use = drop_na_by_pct(filtered_states_df_to_use, 1,
                                                                        pct_of_not_nulls=pct_of_not_nulls, to_print=False)
@@ -283,6 +283,8 @@ def get_data_by_groups(patient_data, states_df_td, genders_to_use=['Male', 'Fema
                         if create_dir is not None:
                             final_dir = os.path.join(new_dir, final_title,)
                             os.makedirs(final_dir, exist_ok=True)
+                        else:
+                            final_dir = None
 
                         curr_k = gender, age_group, death_group, states_df_type, to_filter
                         ret_d[curr_k] = filtered_states_df_to_use, patient_data_to_use, final_title, final_dir
