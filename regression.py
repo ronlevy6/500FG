@@ -5,15 +5,16 @@ if IS_NOTEBOOK:
     from tqdm.notebook import tqdm
 else:
     from tqdm import tqdm
+from misc_utils import flatten_dict
 
 
 def fit_tissues(x, y, fit_intercept=True):
 
-    x = x.dropna()
+    x = x.dropna().astype(float)
     for col in x.columns:
         if len(set(x[col].values)) == 1:
             x = x.drop(columns=[col])
-    y = y.dropna()
+    y = y.dropna().astype(float)
 
     rows_to_use = set(x.index) & set(y.index)
     if len(rows_to_use) == 0:
@@ -47,20 +48,44 @@ def make_df(dict_to_use, make_symmetric):
     return dict_of_dfs
 
 
-def filter_and_organize_reg_dict(reg_dict, separate_s1_s2=True, create_dfs=True, make_symmetric=True, use_attr=False):
+def filter_reg_dict(reg_dict, use_attr=False):
     filtered_reg_dict = dict()
-    if use_attr:
-        key_tup_to_use = 4
-    else:
-        key_tup_to_use = 3
     for k, v in tqdm(reg_dict.items()):
         if v is not None:
             new_v = v.params, v.pvalues, v.f_pvalue
             filtered_reg_dict[k] = new_v
+    return filtered_reg_dict
+
+
+def filter_reg_dict_cluster(outer_key, inner_reg_futs_dict, use_attr=False):
+    filtered_reg_dict = dict()
+    for (t1, t2, attr_col), reg_sm in inner_reg_futs_dict.items():
+        if use_attr:
+            gender, age_group, death_group, states_df_type, to_filter, idx = outer_key
+            new_k = gender, age_group, death_group, states_df_type, to_filter, t1, t2, idx, attr_col
+        else:
+            new_k = outer_key
+        if reg_sm is not None:
+            new_v = reg_sm.params, reg_sm.pvalues, reg_sm.f_pvalue
+            filtered_reg_dict[new_k] = new_v
+    return filtered_reg_dict
+
+
+def organize_reg_dict(filtered_reg_dict, separate_s1_s2=True, create_dfs=True, make_symmetric=True,
+                      use_attr=False, to_merge=True, assert_key=True):
+    if isinstance(filtered_reg_dict, list) and to_merge:
+        flatten_reg_dict = flatten_dict(filtered_reg_dict, assert_disjoint=assert_key)
+    else:
+        flatten_reg_dict = filtered_reg_dict
+    if use_attr:
+        key_tup_to_use = 4
+    else:
+        key_tup_to_use = 3
+
     if separate_s1_s2:
         filtered_reg_dict_s1 = dict()
         filtered_reg_dict_s2 = dict()
-        for k, v in tqdm(filtered_reg_dict.items()):
+        for k, v in tqdm(flatten_reg_dict.items()):
             keys = k[:-key_tup_to_use]
             if use_attr:
                 t1, t2, idx, attr = k[-key_tup_to_use:]
@@ -86,9 +111,9 @@ def filter_and_organize_reg_dict(reg_dict, separate_s1_s2=True, create_dfs=True,
         if create_dfs:
             filtered_reg_dict_s1_dfs = make_df(filtered_reg_dict_s1, make_symmetric)
             filtered_reg_dict_s2_dfs = make_df(filtered_reg_dict_s2, make_symmetric)
-            return filtered_reg_dict_s1_dfs, filtered_reg_dict_s2_dfs, filtered_reg_dict
+            return filtered_reg_dict_s1_dfs, filtered_reg_dict_s2_dfs, flatten_reg_dict
         else:
-            return filtered_reg_dict_s1, filtered_reg_dict_s2, filtered_reg_dict
+            return filtered_reg_dict_s1, filtered_reg_dict_s2, flatten_reg_dict
     else:
-        return filtered_reg_dict
+        return flatten_reg_dict
 

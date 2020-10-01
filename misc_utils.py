@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import matplotlib.pyplot as plt
+import itertools
 
 
 def create_tmp_file(curr_dir, suffix=None):
@@ -165,3 +166,14 @@ def filter_df(df, tissues_del_thresh=5):
         df = df.drop(columns=to_del).drop(index=to_del)
 
     return df
+
+
+def flatten_dict(lst_of_dicts, assert_disjoint=True):
+    # make sure all dicts are not related
+    if assert_disjoint:
+        for d1, d2 in itertools.combinations(lst_of_dicts, r=2):
+            assert set(d1.keys()).isdisjoint(set(d2.keys()))
+    ret_dict = dict()
+    for d in lst_of_dicts:
+        ret_dict.update(d)
+    return ret_dict

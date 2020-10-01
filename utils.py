@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from IPython import get_ipython
 import os
 from misc_utils import fix_query_txt, drop_na_by_pct
+from scipy.stats import zscore
 
 IS_NOTEBOOK = 'zmqshell' in str(get_ipython())
 
@@ -289,3 +290,25 @@ def get_data_by_groups(patient_data, states_df_td, genders_to_use=['Male', 'Fema
                         curr_k = gender, age_group, death_group, states_df_type, to_filter
                         ret_d[curr_k] = filtered_states_df_to_use, patient_data_to_use, final_title, final_dir
     return ret_d
+
+
+def zscore_attr_df(attr_df, attr_metadata, only_continous=True, merge_all_cols=True):
+    if only_continous:
+        cols_to_standart = attr_metadata[
+            (attr_metadata.to_use > 0) & (attr_metadata.calculated_type.isin(['integer', 'decimal']))].index.tolist()
+    else:
+        cols_to_standart = attr_df.select_dtypes(include=[np.number]).columns.tolist()
+
+    attr_df_zscore = dict()
+    for col in cols_to_standart:
+        data_no_na = attr_df[[col]].dropna()
+        if data_no_na.shape[0] > 0 and len(set(data_no_na.values.flatten())) > 1:
+            attr_df_zscore[col] = data_no_na.apply(zscore).to_dict()[col]
+
+    attr_df_zscore_df = pd.DataFrame(attr_df_zscore)
+    assert attr_df_zscore_df.index.tolist() == attr_df.index.tolist()
+
+    if merge_all_cols:
+        missing_cols = set(attr_df.columns) - set(attr_df_zscore_df.columns)
+        attr_df_zscore_df = attr_df_zscore_df.merge(attr_df[missing_cols], left_index=True, right_index=True)
+    return attr_df_zscore_df
