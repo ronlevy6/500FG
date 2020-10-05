@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from IPython import get_ipython
 import os
-from misc_utils import fix_query_txt, drop_na_by_pct
+from misc_utils import fix_query_txt, drop_na_by_pct, check_from_option
 from scipy.stats import zscore
 
 IS_NOTEBOOK = 'zmqshell' in str(get_ipython())
@@ -312,3 +312,18 @@ def zscore_attr_df(attr_df, attr_metadata, only_continous=True, merge_all_cols=T
         missing_cols = set(attr_df.columns) - set(attr_df_zscore_df.columns)
         attr_df_zscore_df = attr_df_zscore_df.merge(attr_df[missing_cols], left_index=True, right_index=True)
     return attr_df_zscore_df
+
+
+def get_group_key_from(pickle_path, idx_pos=-8):
+    gender = check_from_option(['Male', 'Female'], pickle_path, 'All', 'Both_sexes')
+
+    state_df_type = check_from_option(['Normal', 'Anchor', 'Smoothen', 'Smoothen_Anchor'], pickle_path, 'Anchor')
+
+    age = check_from_option(['Old', 'Normal', 'Young'], pickle_path, "All", 'all_ages')
+
+    death_type = check_from_option(['Good', 'Bad'], pickle_path, "All", 'all_death_types')
+
+    is_filtered = "filtered" in pickle_path
+
+    idx = pickle_path[idx_pos]
+    return (gender, age, death_type, state_df_type, is_filtered), idx

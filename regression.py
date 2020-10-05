@@ -1,3 +1,4 @@
+from misc_utils import flatten_dict
 import pandas as pd
 import statsmodels.api as sm
 from utils import IS_NOTEBOOK
@@ -5,7 +6,6 @@ if IS_NOTEBOOK:
     from tqdm.notebook import tqdm
 else:
     from tqdm import tqdm
-from misc_utils import flatten_dict
 
 
 def fit_tissues(x, y, fit_intercept=True):

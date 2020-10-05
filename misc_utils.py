@@ -177,3 +177,12 @@ def flatten_dict(lst_of_dicts, assert_disjoint=True):
     for d in lst_of_dicts:
         ret_dict.update(d)
     return ret_dict
+
+
+def check_from_option(lst_of_options, str_to_check_in, replacer, assertion_val=None):
+    for val in lst_of_options:
+        if val in str_to_check_in:
+            return val
+    if assertion_val is not None:
+        assert assertion_val in str_to_check_in
+        return replacer
