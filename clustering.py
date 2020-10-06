@@ -107,6 +107,41 @@ def tissue_clustering(curr_data, main_title, patient_data, extract_cluster=False
     return s1_data, s2_data
 
 
+def plot_clustering(corr_df, curr_title, file_title, to_save=None, to_show=True, extract_cluster=False, save_pdf=False,
+                    bbox_inches='tight', tight_layout=True, heatmap_kws={'xticklabels': 1, 'yticklabels': 1}, vmin=-1,
+                    vmax=1, is_symmetric=False):
+    if is_symmetric or corr_df.equals(corr_df.transpose()):
+        # corr df is symmetric
+        g = sns.clustermap(corr_df, cmap='bwr', vmin=vmin, vmax=vmax, **heatmap_kws)
+    else:
+        g1 = sns.clustermap(corr_df, cmap='bwr', vmin=vmin, vmax=vmax, **heatmap_kws, col_cluster=False)
+        plt.close()
+        row_order_by_name = [corr_df.columns[i] for i in g1.dendrogram_row.reordered_ind]
+        corr_df_second_try = corr_df[row_order_by_name]
+        g = sns.clustermap(corr_df_second_try, cmap='bwr', vmin=vmin, vmax=vmax, **heatmap_kws, col_cluster=False)
+
+    plt.title(curr_title)
+
+    if to_save is not None or to_show:
+        dir_to_save = os.path.join(to_save, file_title) if to_save is not None else None
+        save_and_show_figure(dir_to_save, save_pdf=save_pdf, to_show=to_show,
+                             tight_layout=tight_layout, bbox_inches=bbox_inches)
+    else:
+        plt.clf()
+        plt.cla()
+        plt.close('all')
+
+    if extract_cluster:
+        dir_to_save = os.path.join(to_save, file_title + ' clusters') if to_save is not None else None
+        corr_cluster = get_cluster_from_clustermap_result(g, is_row=True, title=curr_title + ' clusters',
+                                                          to_save=dir_to_save, to_show=to_show,
+                                                          save_pdf=save_pdf, join_path=False)
+    else:
+        corr_cluster = None
+
+    return corr_cluster, g
+
+
 def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh=5, extract_cluster=False, to_plot=True,
                             to_save=None, to_show=True, save_pdf=True, tight_layout=True, bbox_inches='tight',
                             heatmap_kws={'xticklabels': 1, 'yticklabels': 1}):
@@ -132,29 +167,8 @@ def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh
     corr_df = filter_df(corr_df, tissues_del_thresh=tissues_del_thresh)
 
     if to_plot:
-        if corr_df.equals(corr_df.transpose()):
-            # corr df is symmetric
-            g = sns.clustermap(corr_df, cmap='bwr', vmin=-1, vmax=1, **heatmap_kws)
-        else:
-            g1 = sns.clustermap(corr_df, cmap='bwr', vmin=-1, vmax=1, **heatmap_kws, col_cluster=False)
-            plt.close()
-            row_order_by_name = [corr_df.columns[i] for i in g1.dendrogram_row.reordered_ind]
-            corr_df_second_try = corr_df[row_order_by_name]
-            g = sns.clustermap(corr_df_second_try, cmap='bwr', vmin=-1, vmax=1, **heatmap_kws, col_cluster=False)
-
-        plt.title(curr_title)
-
-        if to_save is not None or to_show:
-            dir_to_save = os.path.join(to_save, file_title) if to_save is not None else None
-            save_and_show_figure(dir_to_save, save_pdf=save_pdf, to_show=to_show,
-                                 tight_layout=tight_layout, bbox_inches=bbox_inches)
-        if extract_cluster:
-            dir_to_save = os.path.join(to_save, file_title+' clusters') if to_save is not None else None
-            corr_cluster = get_cluster_from_clustermap_result(g, is_row=True, title=curr_title + ' clusters',
-                                                              to_save=dir_to_save, to_show=to_show,
-                                                              save_pdf=save_pdf, join_path=False)
-        else:
-            corr_cluster = None
+        corr_cluster, g = plot_clustering(corr_df, curr_title, file_title, to_save, to_show,
+                                          extract_cluster, save_pdf, bbox_inches, tight_layout, heatmap_kws)
     else:
         g = None
         corr_cluster = None

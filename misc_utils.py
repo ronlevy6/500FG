@@ -139,7 +139,9 @@ def save_and_show_figure(full_path_without_extension, to_show=True, save_pdf=Fal
             plt.savefig(full_path_without_extension + '.pdf', bbox_inches=bbox_inches)
     if to_show:
         plt.show()
-    plt.close()
+    plt.clf()
+    plt.cla()
+    plt.close('all')
 
 
 def fix_query_txt(query_txt):
@@ -152,7 +154,10 @@ def fix_query_txt(query_txt):
 
 
 def dropna_ndarray(arr):
-    return arr[~np.isnan(arr)]
+    try:
+        return arr[~np.isnan(arr)]
+    except TypeError:
+        return arr[~pd.isna(arr)]
 
 
 def filter_df(df, tissues_del_thresh=5):
