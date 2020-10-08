@@ -124,7 +124,7 @@ def smooth_data(ge_dict, pca_space, dist_df, x_col, y_col, col_to_change_to_orig
             if dist_df is None:
                 dist_df = calc_dist_in_df(pca_space_with_ge, [x_col, y_col], idx_names=False)
                 closet_genes_dict, closest_by_idx = get_closest(dist_df, **get_closest_kwargs)
-            if isinstance(pca_space_with_ge.index, pd.core.index.MultiIndex) and not closest_by_idx:
+            if isinstance(pca_space_with_ge.index, pd.MultiIndex) and not closest_by_idx:
                 levels_to_drop = list(set(pca_space_with_ge.index.names) - set([ge_index_col]))
                 pca_space_with_ge = pca_space_with_ge.droplevel(levels_to_drop)
             # fill in dict is faster than DataFrame
