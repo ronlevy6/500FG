@@ -109,16 +109,20 @@ def tissue_clustering(curr_data, main_title, patient_data, extract_cluster=False
 
 def plot_clustering(corr_df, curr_title, file_title, to_save=None, to_show=True, extract_cluster=False, save_pdf=False,
                     bbox_inches='tight', tight_layout=True, heatmap_kws={'xticklabels': 1, 'yticklabels': 1}, vmin=-1,
-                    vmax=1, is_symmetric=False):
+                    vmax=1, is_symmetric=False, need_to_reorder=False,metric='euclidean'):
     if is_symmetric or corr_df.equals(corr_df.transpose()):
         # corr df is symmetric
         g = sns.clustermap(corr_df, cmap='bwr', vmin=vmin, vmax=vmax, **heatmap_kws)
     else:
-        g1 = sns.clustermap(corr_df, cmap='bwr', vmin=vmin, vmax=vmax, **heatmap_kws, col_cluster=False)
-        plt.close()
-        row_order_by_name = [corr_df.columns[i] for i in g1.dendrogram_row.reordered_ind]
-        corr_df_second_try = corr_df[row_order_by_name]
-        g = sns.clustermap(corr_df_second_try, cmap='bwr', vmin=vmin, vmax=vmax, **heatmap_kws, col_cluster=False)
+        if need_to_reorder:
+            g1 = sns.clustermap(corr_df, cmap='bwr', vmin=vmin, vmax=vmax, **heatmap_kws, col_cluster=False)
+            plt.close()
+            row_order_by_name = [corr_df.columns[i] for i in g1.dendrogram_row.reordered_ind]
+            corr_df_second_try = corr_df[row_order_by_name]
+        else:
+            corr_df_second_try = corr_df
+        g = sns.clustermap(corr_df_second_try, cmap='bwr', vmin=vmin, vmax=vmax, **heatmap_kws, col_cluster=False,
+                           metric=metric)
 
     plt.title(curr_title)
 
@@ -144,7 +148,8 @@ def plot_clustering(corr_df, curr_title, file_title, to_save=None, to_show=True,
 
 def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh=5, extract_cluster=False, to_plot=True,
                             to_save=None, to_show=True, save_pdf=True, tight_layout=True, bbox_inches='tight',
-                            heatmap_kws={'xticklabels': 1, 'yticklabels': 1}):
+                            heatmap_kws={'xticklabels': 1, 'yticklabels': 1}, is_symmetric=False,
+                            need_to_reorder=False, metric='euclidean'):
     if isinstance(state_idx, int) and isinstance(states_df, pd.DataFrame):
         curr_state_df = states_df.applymap(lambda val: by_idx(val, state_idx))
         corr_df = curr_state_df.transpose().corr()
@@ -168,7 +173,8 @@ def corr_and_cluster_states(states_df, state_idx, main_title, tissues_del_thresh
 
     if to_plot:
         corr_cluster, g = plot_clustering(corr_df, curr_title, file_title, to_save, to_show,
-                                          extract_cluster, save_pdf, bbox_inches, tight_layout, heatmap_kws)
+                                          extract_cluster, save_pdf, bbox_inches, tight_layout, heatmap_kws,
+                                          is_symmetric=is_symmetric, need_to_reorder=need_to_reorder, metric=metric)
     else:
         g = None
         corr_cluster = None

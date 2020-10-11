@@ -463,3 +463,10 @@ def var_analysis_within_group(data_to_use, data_label, patient_data, col_to_sort
                                                      to_save=to_save, x_label=subgroup1, y_label=subgroup2,
                                                      to_show=to_show, use_title=True)
     return var_dfs
+
+
+def np_abs(v1, v2):
+    vs = np.array([v1, v2])
+    mask = np.isnan(vs[0]) | np.isnan(vs[1])
+    filtered = vs[: , np.invert(mask)]
+    return np.sum(np.abs(filtered[1] - filtered[0]))
