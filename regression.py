@@ -14,6 +14,8 @@ def fit_tissues(x, y, fit_intercept=True):
     for col in x.columns:
         if len(set(x[col].values)) == 1:
             x = x.drop(columns=[col])
+    if x.shape[1] == 0:
+        return None
     y = y.dropna().astype(float)
 
     rows_to_use = set(x.index) & set(y.index)
