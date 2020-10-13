@@ -109,7 +109,7 @@ def tissue_clustering(curr_data, main_title, patient_data, extract_cluster=False
 
 def plot_clustering(corr_df, curr_title, file_title, to_save=None, to_show=True, extract_cluster=False, save_pdf=False,
                     bbox_inches='tight', tight_layout=True, heatmap_kws={'xticklabels': 1, 'yticklabels': 1}, vmin=-1,
-                    vmax=1, is_symmetric=False, need_to_reorder=False,metric='euclidean'):
+                    vmax=1, is_symmetric=False, need_to_reorder=False,metric='euclidean', set_background=False):
     if is_symmetric or corr_df.equals(corr_df.transpose()):
         # corr df is symmetric
         g = sns.clustermap(corr_df, cmap='bwr', vmin=vmin, vmax=vmax, **heatmap_kws)
@@ -123,7 +123,8 @@ def plot_clustering(corr_df, curr_title, file_title, to_save=None, to_show=True,
             corr_df_second_try = corr_df
         g = sns.clustermap(corr_df_second_try, cmap='bwr', vmin=vmin, vmax=vmax, **heatmap_kws, col_cluster=False,
                            metric=metric)
-
+    if set_background:
+        g.ax_heatmap.set_facecolor('xkcd:black')
     plt.title(curr_title)
 
     if to_save is not None or to_show:

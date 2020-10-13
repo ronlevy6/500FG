@@ -1,6 +1,7 @@
 from misc_utils import flatten_dict
 import pandas as pd
 import statsmodels.api as sm
+import numpy as np
 from utils import IS_NOTEBOOK
 if IS_NOTEBOOK:
     from tqdm.notebook import tqdm
@@ -55,27 +56,28 @@ def filter_reg_dict(reg_dict, use_attr=False):
     filtered_reg_dict = dict()
     for k, v in tqdm(reg_dict.items()):
         if v is not None:
-            new_v = v.params, v.pvalues, v.f_pvalue
+            new_v = v.params, v.pvalues, v.f_pvalue, v.nobs
             filtered_reg_dict[k] = new_v
     return filtered_reg_dict
 
 
 def filter_reg_dict_cluster(outer_key, inner_reg_futs_dict, use_attr=False):
     filtered_reg_dict = dict()
-    for (t1, attr_col), reg_sm in inner_reg_futs_dict.items():
+    for k, reg_sm in inner_reg_futs_dict.items():
+        t1, attr_col = k[0], k[-1]
         if use_attr:
             gender, age_group, death_group, states_df_type, to_filter, idx = outer_key
             new_k = gender, age_group, death_group, states_df_type, to_filter, t1, idx, attr_col
         else:
             new_k = outer_key
         if reg_sm is not None:
-            new_v = reg_sm.params, reg_sm.pvalues, reg_sm.f_pvalue
+            new_v = reg_sm.params, reg_sm.pvalues, reg_sm.f_pvalue, reg_sm.nobs
             filtered_reg_dict[new_k] = new_v
     return filtered_reg_dict
 
 
 def organize_reg_dict(filtered_reg_dict, separate_s1_s2=True, create_dfs=True, make_symmetric=True,
-                      use_attr=False, to_merge=True, assert_key=True, from_dict_orient='columns'):
+                      use_attr=False, to_merge=True, assert_key=True, from_dict_orient='columns', by_tissue=True):
     if isinstance(filtered_reg_dict, list) and to_merge:
         flatten_reg_dict = flatten_dict(filtered_reg_dict, assert_disjoint=assert_key)
     else:
@@ -94,10 +96,14 @@ def organize_reg_dict(filtered_reg_dict, separate_s1_s2=True, create_dfs=True, m
                 tissue, idx, attr = k[-key_tup_to_use:]
             else:
                 tissue, idx = k[-key_tup_to_use:]
-            params, variables_pvalues, f_pvalue = v
-            if attr not in params:
+            params, variables_pvalues, f_pvalue, nobs = v
+            if by_tissue:
+                val_to_comp = tissue
+            else:
+                val_to_comp = attr
+            if val_to_comp not in params:
                 continue
-            curr_val = params[attr]
+            curr_val = params[val_to_comp]
             if idx == 0:
                 curr_d = filtered_reg_dict_s1
             elif idx == 1:
@@ -120,3 +126,37 @@ def organize_reg_dict(filtered_reg_dict, separate_s1_s2=True, create_dfs=True, m
     else:
         return flatten_reg_dict
 
+
+def create_pval_df(reg_results, fillna=False, minus_log=False):
+    # fits for the output from filter_reg_dict or filter_reg_dict_cluster
+    pval_d = dict()
+    for k_tup, v_tup in reg_results.items():
+        tissue, attr = k_tup[-3], k_tup[-1]
+        pval_d.setdefault(tissue, dict())[attr] = v_tup[2]
+    pval_df = pd.DataFrame.from_dict(pval_d)
+    if fillna:
+        pval_df.fillna(value=np.nan, inplace=True)
+        pval_df = pval_df.astype(float)
+    if minus_log:
+        pval_df = -np.log10(pval_df)
+    return pval_df
+
+
+def remove_by_pval(reg_df, reg_results, thresh_pval=0.4, fillna=True):
+    # fits for the output from filter_reg_dict or filter_reg_dict_cluster
+    pval_df = create_pval_df(reg_results, fillna)
+
+    shared_cols = np.intersect1d(reg_df.columns, pval_df.columns)
+    shared_idxs = np.intersect1d(reg_df.index, pval_df.index)
+
+    reg_df = reg_df[shared_cols]
+    reg_df = reg_df.loc[shared_idxs]
+
+    pval_df = pval_df[shared_cols]
+    pval_df = pval_df.loc[shared_idxs]
+
+    reg_np = reg_df.to_numpy()
+    pval_np = pval_df.fillna(1.5).to_numpy()
+    masked_np = np.ma.masked_where(pval_np >= thresh_pval, reg_np)
+    masked_df = pd.DataFrame(masked_np, columns=reg_df.columns, index=reg_df.index)
+    return masked_df.astype(float)

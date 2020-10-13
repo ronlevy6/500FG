@@ -61,6 +61,21 @@ def drop_na_by_pct(df, axis, pct_of_not_nulls=0.5, to_print=False):
     return ret_df
 
 
+def dropna_by_num(df, tissues_del_thresh=8):
+    max_axis0 = df.isna().sum(axis=0).max()
+    max_axis1 = df.isna().sum(axis=1).max()
+    if max_axis0 > max_axis1:
+        axis_to_drop = 1
+    else:
+        axis_to_drop = 0
+
+    while df.isna().sum().sum() and tissues_del_thresh >= 0:
+        thresh = df.shape[1 - axis_to_drop] - tissues_del_thresh
+        df = df.dropna(axis=axis_to_drop, thresh=thresh)
+        tissues_del_thresh -= 1
+    return df
+
+
 # def make_pretty(val):
 #     """
 #     fit sub tissue value into subplots spacing..

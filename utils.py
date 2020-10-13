@@ -306,7 +306,9 @@ def zscore_attr_df(attr_df, attr_metadata, only_continous=True, merge_all_cols=T
             attr_df_zscore[col] = data_no_na.apply(zscore).to_dict()[col]
 
     attr_df_zscore_df = pd.DataFrame(attr_df_zscore)
-    assert attr_df_zscore_df.index.tolist() == attr_df.index.tolist()
+    if not attr_df_zscore_df.index.tolist() == attr_df.index.tolist():
+        assert set(attr_df_zscore_df.index.tolist()) == set(attr_df.index.tolist())
+        attr_df_zscore_df = attr_df_zscore_df.reindex(attr_df.index)
 
     if merge_all_cols:
         missing_cols = set(attr_df.columns) - set(attr_df_zscore_df.columns)
@@ -327,3 +329,17 @@ def get_group_key_from(pickle_path, idx_pos=-8):
 
     idx = pickle_path[idx_pos]
     return (gender, age, death_type, state_df_type, is_filtered), idx
+
+
+def key_to_dirname(key_tup):
+    gender, age_group, death_type, states_df_type, is_filtered = key_tup
+    ret_str = "{}, {}, {}, {}".format(states_df_type.strip(), gender.strip(), age_group.strip(), death_type.strip())
+    if is_filtered:
+        ret_str += " filtered"
+
+    if 'Both' in gender:
+        ret_gender = "All"
+    else:
+        ret_gender = gender.strip()
+
+    return ret_str, ret_gender
