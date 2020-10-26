@@ -343,3 +343,56 @@ def key_to_dirname(key_tup):
         ret_gender = gender.strip()
 
     return ret_str, ret_gender
+
+
+def save_attr_df(attr_df, attr_metadata, full_saving_path, to_csv=True, ret=False):
+    if len(set(attr_df.columns) & set(attr_metadata.index)) < 10:
+        attr_df = attr_df.transpose()
+    old_order = attr_df.index.tolist()
+    col_to_add = dict()
+    for col in attr_df.columns:
+        if col in attr_metadata.index:
+            col_to_add[col] = attr_metadata.loc[col]['description']
+        else:
+            col_to_add[col] = None
+    attr_df = attr_df.append(pd.DataFrame(col_to_add, index=['full_name']))
+    attr_df = attr_df.reindex(['full_name']+old_order)
+    if full_saving_path:
+        if to_csv:
+            attr_df.to_csv(full_saving_path)
+        else:
+            attr_df.to_pickle(full_saving_path)
+    if ret:
+        return attr_df
+
+
+def clean_attributes_data(attr_df, attr_metadata, outlier_const=3, unknown_code_vals=[99, 98, 97, 96],
+                          remove_unknown=True, remove_outlier=True, zscore=True, strict_removal=True):
+    attr_cols = set(attr_df.columns)
+    enum_cols = None
+    continuous_cols = None
+    if remove_unknown:
+        # remove unknown/non reported values
+        enum_cols = attr_metadata[(attr_metadata.calculated_type.str.contains("enum")) & (
+                    attr_metadata.reported_type != 'string')].index.tolist()
+        enum_cols = list(set(enum_cols) & attr_cols)
+        attr_df[enum_cols] = attr_df[enum_cols].replace(unknown_code_vals, np.nan)
+        if strict_removal:
+            attr_df = attr_df.replace(unknown_code_vals, np.nan)
+
+    if remove_outlier:
+        # find and remove outliers
+        continuous_cols = attr_metadata[attr_metadata.calculated_type.isin(['decimal', 'integer'])].index.tolist()
+        continuous_cols = list(set(continuous_cols) & attr_cols)
+        low_lim = attr_df[continuous_cols].mean() - outlier_const * attr_df[continuous_cols].std()
+        high_lim = attr_df[continuous_cols].mean() + outlier_const * attr_df[continuous_cols].std()
+
+        tmp = pd.DataFrame(index=attr_df.index)
+        for col in continuous_cols:
+            tmp[col] = np.where((attr_df[col] > high_lim[col]) | (attr_df[col] < low_lim[col]), np.nan, 0)
+        # mask - int + np.nan = np.nan
+        attr_df[continuous_cols] = attr_df[continuous_cols] + tmp
+
+    if zscore:
+        attr_df = zscore_attr_df(attr_df, attr_metadata)
+    return attr_df, enum_cols, continuous_cols

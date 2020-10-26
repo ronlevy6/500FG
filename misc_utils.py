@@ -206,3 +206,22 @@ def check_from_option(lst_of_options, str_to_check_in, replacer, assertion_val=N
     if assertion_val is not None:
         assert assertion_val in str_to_check_in
         return replacer
+
+
+def calc_limits(all_vals, lim_const=2, vals_threshold=7, sigma_threshold=2.5, outliers_bandwidth=5, run_twice=True):
+    all_vals = dropna_ndarray(all_vals)
+    mu = np.mean(all_vals)
+    sigma = np.std(all_vals)
+    curr_vmin = mu - lim_const * sigma
+    curr_vmax = mu + lim_const * sigma
+    if curr_vmax > vals_threshold or curr_vmin < -vals_threshold or sigma > sigma_threshold:
+        # potential outliers
+        upper_bound = mu + outliers_bandwidth * sigma
+        lower_bound = mu - outliers_bandwidth * sigma
+
+        all_vals = all_vals[(all_vals <= upper_bound) & (lower_bound <= all_vals)]
+
+        if run_twice:
+            curr_vmin, curr_vmax, mu, sigma = calc_limits(all_vals, outliers_bandwidth=3, run_twice=False)
+
+    return curr_vmin, curr_vmax, mu, sigma

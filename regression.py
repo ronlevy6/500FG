@@ -2,6 +2,7 @@ from misc_utils import flatten_dict
 import pandas as pd
 import statsmodels.api as sm
 import numpy as np
+import scipy
 from utils import IS_NOTEBOOK
 if IS_NOTEBOOK:
     from tqdm.notebook import tqdm
@@ -56,7 +57,11 @@ def filter_reg_dict(reg_dict, use_attr=False):
     filtered_reg_dict = dict()
     for k, v in tqdm(reg_dict.items()):
         if v is not None:
-            new_v = v.params, v.pvalues, v.f_pvalue, v.nobs
+            try:
+                s, p = scipy.stats.normaltest(v.resid)
+            except ValueError:
+                p = None
+            new_v = v.params, v.pvalues, v.f_pvalue, v.nobs, v.resid, p
             filtered_reg_dict[k] = new_v
     return filtered_reg_dict
 
@@ -71,7 +76,11 @@ def filter_reg_dict_cluster(outer_key, inner_reg_futs_dict, use_attr=False):
         else:
             new_k = outer_key
         if reg_sm is not None:
-            new_v = reg_sm.params, reg_sm.pvalues, reg_sm.f_pvalue, reg_sm.nobs
+            try:
+                s, p = scipy.stats.normaltest(reg_sm.resid)
+            except ValueError:
+                p = None
+            new_v = reg_sm.params, reg_sm.pvalues, reg_sm.f_pvalue, reg_sm.nobs, reg_sm.resid, p
             filtered_reg_dict[new_k] = new_v
     return filtered_reg_dict
 
@@ -96,7 +105,7 @@ def organize_reg_dict(filtered_reg_dict, separate_s1_s2=True, create_dfs=True, m
                 tissue, idx, attr = k[-key_tup_to_use:]
             else:
                 tissue, idx = k[-key_tup_to_use:]
-            params, variables_pvalues, f_pvalue, nobs = v
+            params, variables_pvalues, f_pvalue, nobs, resid, residual_norm_dist_p_val = v
             if by_tissue:
                 val_to_comp = tissue
             else:
