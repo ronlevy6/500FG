@@ -3,15 +3,15 @@ import pandas as pd
 import statsmodels.api as sm
 import numpy as np
 import scipy
-from utils import IS_NOTEBOOK
+from utils import IS_NOTEBOOK, remove_outliers
 if IS_NOTEBOOK:
     from tqdm.notebook import tqdm
 else:
     from tqdm import tqdm
 
 
-def fit_tissues(x, y, fit_intercept=True):
-
+def fit_tissues(x, y, fit_intercept=True, remove_inner_outlier=False, outlier_const=3):
+    # TODO: consider add alpha-trim check to remove inner outliers. Do it by demand (if..)
     x = x.dropna().astype(float)
     for col in x.columns:
         if len(set(x[col].values)) == 1:
@@ -28,6 +28,16 @@ def fit_tissues(x, y, fit_intercept=True):
     y = y.loc[rows_to_use]
 
     assert x.index.tolist() == y.index.tolist()
+
+    if remove_inner_outlier:
+        # Ugly workaround to work with dataframe and not series
+        y = pd.DataFrame(y)
+        y = remove_outliers(y, None, None, outlier_const=outlier_const)
+        y = y[y.columns[0]]
+        # make x and y have the same values again
+        y = y.dropna()
+        x = x.loc[y.index]
+        assert x.index.tolist() == y.index.tolist()
 
     if fit_intercept:
         x = sm.add_constant(x, has_constant='add')

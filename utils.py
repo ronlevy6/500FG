@@ -366,6 +366,25 @@ def save_attr_df(attr_df, attr_metadata, full_saving_path, to_csv=True, ret=Fals
         return attr_df
 
 
+def remove_outliers(attr_df, attr_metadata=None, attr_cols=None, outlier_const=3):
+    # find and remove outliers
+    if attr_metadata is not None:
+        continuous_cols = attr_metadata[attr_metadata.calculated_type.isin(['decimal', 'integer'])].index.tolist()
+        continuous_cols = list(set(continuous_cols) & attr_cols)
+    else:
+        continuous_cols = attr_df.columns
+    low_lim = attr_df[continuous_cols].mean() - outlier_const * attr_df[continuous_cols].std()
+    high_lim = attr_df[continuous_cols].mean() + outlier_const * attr_df[continuous_cols].std()
+
+    tmp = pd.DataFrame(index=attr_df.index)
+    for col in continuous_cols:
+        tmp[col] = np.where((attr_df[col] > high_lim[col]) | (attr_df[col] < low_lim[col]), np.nan, 0)
+        # TODO: consider, if a lot of nans, remove the whole column values
+    # mask - int + np.nan = np.nan
+    attr_df[continuous_cols] = attr_df[continuous_cols] + tmp
+    return attr_df
+
+
 def clean_attributes_data(attr_df, attr_metadata, outlier_const=3, unknown_code_vals=[99, 98, 97, 96],
                           remove_unknown=True, remove_outlier=True, zscore=True, strict_removal=True):
     attr_cols = set(attr_df.columns)
@@ -381,17 +400,7 @@ def clean_attributes_data(attr_df, attr_metadata, outlier_const=3, unknown_code_
             attr_df = attr_df.replace(unknown_code_vals, np.nan)
 
     if remove_outlier:
-        # find and remove outliers
-        continuous_cols = attr_metadata[attr_metadata.calculated_type.isin(['decimal', 'integer'])].index.tolist()
-        continuous_cols = list(set(continuous_cols) & attr_cols)
-        low_lim = attr_df[continuous_cols].mean() - outlier_const * attr_df[continuous_cols].std()
-        high_lim = attr_df[continuous_cols].mean() + outlier_const * attr_df[continuous_cols].std()
-
-        tmp = pd.DataFrame(index=attr_df.index)
-        for col in continuous_cols:
-            tmp[col] = np.where((attr_df[col] > high_lim[col]) | (attr_df[col] < low_lim[col]), np.nan, 0)
-        # mask - int + np.nan = np.nan
-        attr_df[continuous_cols] = attr_df[continuous_cols] + tmp
+        attr_df = remove_outliers(attr_df, attr_metadata, attr_cols, outlier_const)
 
     if zscore:
         attr_df = zscore_attr_df(attr_df, attr_metadata)
