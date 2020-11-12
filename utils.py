@@ -386,18 +386,19 @@ def remove_outliers(attr_df, attr_metadata=None, attr_cols=None, outlier_const=3
 
 
 def clean_attributes_data(attr_df, attr_metadata, outlier_const=3, unknown_code_vals=[99, 98, 97, 96],
-                          remove_unknown=True, remove_outlier=True, zscore=True, strict_removal=True):
+                          remove_unknown=True, remove_outlier=True, zscore=True, strict_removal=None):
     attr_cols = set(attr_df.columns)
     enum_cols = None
-    continuous_cols = None
+    continuous_cols = attr_metadata[attr_metadata.calculated_type.isin(['decimal', 'integer'])].index.tolist()
+    continuous_cols = list(set(continuous_cols) & attr_cols)
     if remove_unknown:
         # remove unknown/non reported values
         enum_cols = attr_metadata[(attr_metadata.calculated_type.str.contains("enum")) & (
                     attr_metadata.reported_type != 'string')].index.tolist()
         enum_cols = list(set(enum_cols) & attr_cols)
         attr_df[enum_cols] = attr_df[enum_cols].replace(unknown_code_vals, np.nan)
-        if strict_removal:
-            attr_df = attr_df.replace(unknown_code_vals, np.nan)
+        if strict_removal is not None:
+            attr_df[strict_removal] = attr_df[strict_removal].replace(unknown_code_vals, np.nan)
 
     if remove_outlier:
         attr_df = remove_outliers(attr_df, attr_metadata, attr_cols, outlier_const)
