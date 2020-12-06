@@ -386,7 +386,8 @@ def remove_outliers(attr_df, attr_metadata=None, attr_cols=None, outlier_const=3
 
 
 def clean_attributes_data(attr_df, attr_metadata, outlier_const=3, unknown_code_vals=[99, 98, 97, 96],
-                          remove_unknown=True, remove_outlier=True, zscore=True, strict_removal=None):
+                          remove_unknown=True, remove_outlier=True, zscore=True, strict_removal=None,
+                          zscore_only_continous=True):
     attr_cols = set(attr_df.columns)
     enum_cols = None
     continuous_cols = attr_metadata[attr_metadata.calculated_type.isin(['decimal', 'integer'])].index.tolist()
@@ -404,5 +405,5 @@ def clean_attributes_data(attr_df, attr_metadata, outlier_const=3, unknown_code_
         attr_df = remove_outliers(attr_df, attr_metadata, attr_cols, outlier_const)
 
     if zscore:
-        attr_df = zscore_attr_df(attr_df, attr_metadata)
+        attr_df = zscore_attr_df(attr_df, attr_metadata, only_continous=zscore_only_continous)
     return attr_df, enum_cols, continuous_cols
