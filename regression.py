@@ -3,6 +3,8 @@ import pandas as pd
 import statsmodels.api as sm
 import numpy as np
 import scipy
+from sklearn.svm import LinearSVR
+from statsmodels.tools.sm_exceptions import PerfectSeparationError
 from utils import IS_NOTEBOOK, remove_outliers
 if IS_NOTEBOOK:
     from tqdm.notebook import tqdm
@@ -10,23 +12,25 @@ else:
     from tqdm import tqdm
 
 
-def fit_tissues(x, y, fit_intercept=True, remove_inner_outlier=False, outlier_const=3):
-    # TODO: consider add alpha-trim check to remove inner outliers. Do it by demand (if..)
-    x = x.dropna().astype(float)
-    for col in x.columns:
-        if len(set(x[col].values)) == 1:
-            x = x.drop(columns=[col])
-    if x.shape[1] == 0:
-        return None
+def fit_tissues(x, y, fit_intercept=True, remove_inner_outlier=False, outlier_const=3, model=None, curr_run_type=None,
+                verbose=False):
+    # x = x.dropna().astype(float)
+    # for col in x.columns:
+    #     if len(set(x[col].values)) == 1:
+    #         x = x.drop(columns=[col])
+    # if x.shape[1] == 0:
+    #     print("shape is 0")
+    #     return None
     y = y.dropna().astype(float)
 
     rows_to_use = set(x.index) & set(y.index)
     if len(rows_to_use) == 0:
+        print("{}, {}, no common".format(x.shape, y.shape, x.columns, pd.DataFrame(y).columns))
+        #         return x, y
         return None
 
     x = x.loc[rows_to_use]
     y = y.loc[rows_to_use]
-
     assert x.index.tolist() == y.index.tolist()
 
     if remove_inner_outlier:
@@ -38,11 +42,30 @@ def fit_tissues(x, y, fit_intercept=True, remove_inner_outlier=False, outlier_co
         y = y.dropna()
         x = x.loc[y.index]
         assert x.index.tolist() == y.index.tolist()
+    if verbose and len(y.unique()) <= 1 or len(y) <= 5 or (y.value_counts().min() == 1 and curr_run_type == 'enum'):
+        print("no outliers - {} {} {} {}".format(y.name, len(y.unique()), y.value_counts(), len(y)))
+        return
 
-    if fit_intercept:
-        x = sm.add_constant(x, has_constant='add')
-    model_sm = sm.OLS(y, x).fit()
-    return model_sm
+    if model in [sm.OLS, sm.RLM, sm.Logit]:
+        try:
+            if fit_intercept:
+                x = sm.add_constant(x, has_constant='add')
+            model_sm = model(y, x).fit()
+            return model_sm
+        except ZeroDivisionError:
+            print(1, x.columns, x.shape, y.shape)
+        except ValueError as e:
+            print(4, "value error", x.columns, pd.DataFrame(y).columns)
+            assert e.args[0] == 'endog must be in the unit interval.' and model == sm.Logit
+        except PerfectSeparationError:
+            print(2, x.columns.tolist(), y.name)
+        #             return x,y,fit_intercept
+        except np.linalg.LinAlgError as e:
+            print(3, x.columns.tolist(), y.name, e.args)
+    elif model == LinearSVR:
+        model_to_run = model(fit_intercept=fit_intercept)
+        res = model_to_run.fit(x, y)
+        return res
 
 
 def make_df(dict_to_use, make_symmetric, from_dict_orient='columns'):
@@ -63,6 +86,39 @@ def make_df(dict_to_use, make_symmetric, from_dict_orient='columns'):
     return dict_of_dfs
 
 
+def filter_reg_dict_cluster(outer_key, inner_reg_futs_dict):
+    filtered_reg_dict = dict()
+    for k, reg_sm in inner_reg_futs_dict.items():
+        if isinstance(reg_sm, tuple):
+            assert len(reg_sm) == 2 and isinstance(reg_sm[0], pd.DataFrame) and isinstance(reg_sm[1], pd.Series)
+            continue
+        t1, attr_col = k[0], k[-1]
+        run_type, model, remove_inner_outlier, add_covariates, add_ischemic, fit_intercept, idx = outer_key
+        new_k = run_type, model, remove_inner_outlier, add_covariates, add_ischemic, fit_intercept, t1, idx, attr_col
+
+        if reg_sm is not None:
+            new_v = dict()
+            if model in ['OLS', 'RLM', 'Logit']:
+                new_v['params'] = reg_sm.params
+                new_v['nobs'] = reg_sm.nobs
+                if model in ['OLS', 'Logit']:
+                    new_v['pvalues'] = reg_sm.pvalues
+                    new_v['aic'] = reg_sm.aic
+                if model == 'OLS':
+                    new_v['rsquared'] = reg_sm.rsquared
+                    new_v['f_pvalue'] = reg_sm.f_pvalue
+                if model == 'Logit':
+                    new_v['llr_pvalue'] = reg_sm.llr_pvalue
+
+            elif model == 'LinearSVR':
+                params_to_put = pd.Series({t1: reg_sm.coef_[0], 'const': reg_sm.intercept_})
+                new_v['params'] = params_to_put
+            else:
+                raise
+            filtered_reg_dict[new_k] = new_v
+    return filtered_reg_dict
+
+
 def filter_reg_dict(reg_dict, use_attr=False):
     filtered_reg_dict = dict()
     for k, v in tqdm(reg_dict.items()):
@@ -73,25 +129,6 @@ def filter_reg_dict(reg_dict, use_attr=False):
                 p = None
             new_v = v.params, v.pvalues, v.f_pvalue, v.nobs, v.resid, p
             filtered_reg_dict[k] = new_v
-    return filtered_reg_dict
-
-
-def filter_reg_dict_cluster(outer_key, inner_reg_futs_dict, use_attr=False):
-    filtered_reg_dict = dict()
-    for k, reg_sm in inner_reg_futs_dict.items():
-        t1, attr_col = k[0], k[-1]
-        if use_attr:
-            gender, age_group, death_group, states_df_type, to_filter, idx = outer_key
-            new_k = gender, age_group, death_group, states_df_type, to_filter, t1, idx, attr_col
-        else:
-            new_k = outer_key
-        if reg_sm is not None:
-            try:
-                s, p = scipy.stats.normaltest(reg_sm.resid)
-            except ValueError:
-                p = None
-            new_v = reg_sm.params, reg_sm.pvalues, reg_sm.f_pvalue, reg_sm.nobs, reg_sm.resid, p
-            filtered_reg_dict[new_k] = new_v
     return filtered_reg_dict
 
 
@@ -115,7 +152,12 @@ def organize_reg_dict(filtered_reg_dict, separate_s1_s2=True, create_dfs=True, m
                 tissue, idx, attr = k[-key_tup_to_use:]
             else:
                 tissue, idx = k[-key_tup_to_use:]
-            params, variables_pvalues, f_pvalue, nobs, resid, residual_norm_dist_p_val = v
+            params = v['params']
+            nobs = v.get('nobs', None)
+            rsquared = v.get('rsquared', None)
+            variables_pvalues = v.get('pvalues', None)
+            f_pvalue = v.get('f_pvalue', None)
+
             if by_tissue:
                 val_to_comp = tissue
             else:

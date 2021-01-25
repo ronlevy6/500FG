@@ -225,3 +225,22 @@ def calc_limits(all_vals, lim_const=2, vals_threshold=7, sigma_threshold=2.5, ou
             curr_vmin, curr_vmax, mu, sigma = calc_limits(all_vals, outliers_bandwidth=3, run_twice=False)
 
     return curr_vmin, curr_vmax, mu, sigma
+
+
+def get_vmin_vmax(df, get_bigger=False, verbose=False):
+    all_vals = dropna_ndarray(df.values.flatten())
+    mu = all_vals.mean()
+    if mu > 1 and verbose:
+        print("warning: mu too big")
+    sigma = all_vals.std()
+    max1 = mu + 3 * sigma
+
+    max2 = np.absolute(all_vals).max()
+
+    if get_bigger:
+        to_ret = max(max1, max2)
+    else:
+        to_ret = min(max1, max2)
+    if verbose:
+        print(max1, max2)
+    return -to_ret, to_ret

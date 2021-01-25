@@ -1,11 +1,14 @@
+import math
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import numpy as np
 import itertools
 from data_manipulation import filter_patient_df
-from misc_utils import undo_print_pretty, fix_text, print_pretty, save_and_show_figure, filter_df
+from misc_utils import undo_print_pretty, fix_text, print_pretty, save_and_show_figure, filter_df, get_vmin_vmax
 from utils import by_idx
+from regression_analysis import get_bits_dist
 
 
 def plot_df(df, x, y, to_filter=False, index_filter_vals=None, title=None, to_color=False, colors=None):
@@ -91,9 +94,9 @@ def calc_scatter_x_y_lims(input_data, patient_data, patients_to_use=None):
 
 
 def plot_states_scatter_subplots(main_title, input_data, patients_to_use, sub_tissues_to_use, patient_data,
-                                  hue, hue_order, same_lims=True, lim_const=1.1, figsize=(25, 35), to_save=None, save_pdf=False, legend_loc=(0.4, 0.8),
-                                  progress_print=False, to_show=True, title_fontsize=28, ylabel_fontsize=14,
-                                 scatter_kwargs={}):
+                                  hue, hue_order, same_lims=True, lim_const=1.1, figsize=(25, 35), to_save=None,
+                                 save_pdf=False, legend_loc=(0.4, 0.8), progress_print=False, to_show=True,
+                                 title_fontsize=28, ylabel_fontsize=14, scatter_kwargs={}):
     """
     plots multiple scatter plots for states. Each state_df consists of tuples when data available, else empty (None)
     lst_of_states_df_with_names - list of tuples [(name, states_df),..]
@@ -348,3 +351,102 @@ def plot_reg_res(reg_res_df, main_title, state_idx,
         save_and_show_figure(dir_to_save, save_pdf=save_pdf, to_show=to_show,
                              tight_layout=tight_layout, bbox_inches=bbox_inches)
     return g
+
+
+def heatmap_and_save(df, attr_desc_d, curr_vmin, curr_vmax, curr_title, dir_to_save, file_title,
+                     bbox_inches='tight', plot_readable_header=True, to_save=True):
+    """
+    plot heatmap and saves a csv of it
+    """
+    plt.figure(figsize=(20, 15))
+    header_df = df.rename(index=attr_desc_d)
+    if plot_readable_header:
+        df = df.rename(index={k: v[:40] for k, v in attr_desc_d.items()})
+    g = sns.heatmap(df.transpose(), cmap='bwr', xticklabels=1, yticklabels=1,
+                    vmin=curr_vmin, vmax=curr_vmax)
+    g.set_facecolor('xkcd:black')
+    plt.title(curr_title)
+    plt.savefig(os.path.join(dir_to_save, '{}.jpg'.format(file_title)), bbox_inches=bbox_inches)
+    plt.clf()
+    plt.cla()
+    plt.close('all')
+    if to_save:
+        header_df.to_csv(os.path.join(dir_to_save, '{}.csv'.format(file_title)))
+
+
+def plot_subplots(df_to_plot, title_baseline, attr_trim, tissue_trim, set_background, save_dir, show,
+                  hspace, min_vmin=None, get_vmin_vmax_get_bigger=False, figsize=(50, 50), verbose=True):
+    """
+    gets a tuple-indexed DF, transforms each column to a normal DF and plots an heatmap.
+    plots many heatmaps using plt.subplots
+    """
+    fig, axs = plt.subplots(nrows=math.ceil(df_to_plot.shape[1] / 2), ncols=2,
+                            figsize=figsize, gridspec_kw={"wspace": 0.3, "hspace": hspace})
+    axs_flat = axs.flatten()
+    for idx, col in enumerate(df_to_plot.columns):
+        d = df_to_plot[col].to_dict()
+        dd = dict()
+        for (k1, k2), v in d.items():
+            dd.setdefault(k1, dict())[k2] = v
+        inner_df = pd.DataFrame(dd).rename(index=lambda val: val[:attr_trim], columns=lambda val: val[:tissue_trim])
+        vmin, vmax = get_vmin_vmax(inner_df, get_bigger=get_vmin_vmax_get_bigger)
+        if min_vmin is not None and vmin < min_vmin:
+            vmin = min_vmin
+        g = sns.heatmap(inner_df, ax=axs_flat[idx], cmap='bwr', vmin=vmin, vmax=vmax, xticklabels=1, yticklabels=1)
+        if set_background:
+            g.set_facecolor('xkcd:black')
+        if isinstance(col, tuple):
+            title = '{}\n{}, {}'.format(title_baseline, col[0], col[1])
+        else:
+            title = '{}\n{}'.format(title_baseline, col)
+        axs_flat[idx].set_title(title)
+    fname = title_baseline
+    for char in ["\n", " ", ",", "-"]:
+        fname = fname.replace(char, "_")
+    while "__" in fname:
+        fname = fname.replace("__", "_")
+    plt.savefig(os.path.join(save_dir, fname + ".pdf"))
+    plt.savefig(os.path.join(save_dir, fname + ".jpg"))
+    if show:
+        plt.show()
+    plt.close()
+    if verbose:
+        print(title_baseline)
+
+
+def plot_correlation_scatters(curr_df, curr_bits_d, title_baseline, save_dir, is_same_reg_type, show=False,
+                              verbose=True, hspace=0.3):
+    """
+    plots many scatter plots of pairs of columns in DF
+    """
+    cols_to_comp = list(curr_df.columns)
+    pairs_to_plot = []
+    for col_idx1, col_idx2 in list(itertools.combinations(list(range(len(cols_to_comp))), r=2)):
+        if get_bits_dist(curr_bits_d[col_idx1], curr_bits_d[col_idx2]) == 1:
+            if is_same_reg_type:
+                if curr_bits_d[col_idx1][0] == curr_bits_d[col_idx2][0]:
+                    pairs_to_plot.append((cols_to_comp[col_idx1], cols_to_comp[col_idx2]))
+            else:
+                if curr_bits_d[col_idx1][0] != curr_bits_d[col_idx2][0]:
+                    pairs_to_plot.append((cols_to_comp[col_idx1], cols_to_comp[col_idx2]))
+    if len(pairs_to_plot) == 0:
+        print("No pairs for {}".format(title_baseline))
+        return
+    rows = math.ceil(len(pairs_to_plot) / 3)
+    fig, axs = plt.subplots(ncols=3, nrows=rows, figsize=(40, 7 * rows), gridspec_kw={"hspace": hspace})
+    flat_axs = axs.flatten()
+    for idx, (col1, col2) in enumerate(pairs_to_plot):
+        df_to_plot = curr_df[[col1, col2]].dropna()
+        corr = np.corrcoef(df_to_plot[col1], df_to_plot[col2])[0, 1]
+        sns.scatterplot(data=df_to_plot, x=col1, y=col2, ax=flat_axs[idx])
+        curr_title = "{}\n {} VS {}\ncorr={:.3f}".format(title_baseline, col1, col2, corr)
+        flat_axs[idx].set_title(curr_title)
+
+    fname = os.path.join(save_dir, '{}.jpg'.format(title_baseline))
+    plt.savefig(fname)
+    plt.savefig(fname.replace("jpg", "pdf"))
+    if show:
+        plt.show()
+    plt.close()
+    if verbose:
+        print(title_baseline)
