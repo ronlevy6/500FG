@@ -166,13 +166,18 @@ def fix_labels_of_pca_map_plots(g, by_ind, obj_to_plot, col_to_state_dfs_d, num_
             s1, s2 = state_df_to_use[obj_to_plot][undo_print_pretty(g.row_names[i // num_of_cols])]
         else:  # by tissue
             if len(ax.texts):  # add more detailed patient data
-                curr_txt = ax.texts[1]
+                try:
+                    text_idx = 1
+                    curr_txt = ax.texts[text_idx]
+                except IndexError:
+                    text_idx = 0
+                    curr_txt = ax.texts[text_idx]
                 age, sex = patient_data.loc[curr_txt.get_text()][['AGE', 'sex_name']].values
                 new_txt = '{}:\n {},{}'.format(curr_txt.get_text(), age, sex)
                 plt.setp(ax.texts, text=new_txt, rotation=-90)
                 # ax.text(curr_txt.get_unitless_position()[0] + 0.25, curr_txt.get_unitless_position()[1] - 0.7,
                 #         s='{}:\n {},{}'.format(curr_txt.get_text(), age, sex), rotation=-90)
-                ax.texts[1].remove()
+                # ax.texts[text_idx].remove()
             curr_ind = g.row_names[i // 4]
             s1, s2 = state_df_to_use[curr_ind][obj_to_plot]
 
