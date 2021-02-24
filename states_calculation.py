@@ -60,6 +60,16 @@ def calc_states(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='nam
     return states_by_all
 
 
+def calc_states_combined_inner(tissue_df, df_with_pca, x_col='pc1', y_col='pc2', fit_intercept=False,):
+    ret_d = dict()
+    for ind in tissue_df.columns:  # use individuals from original GE df
+        y = df_with_pca[ind]
+        model = LinearRegression(fit_intercept=fit_intercept).fit(df_with_pca[[x_col, y_col]], y)
+        assert ind not in ret_d
+        ret_d[ind] = (model.coef_[0], model.coef_[1])
+    return ret_d
+
+
 def calc_states_combined(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='name', fit_intercept=False,
                          to_filter_pca_df=None, need_to_merge=False, query_to_filter_merged_df=None):
 
@@ -76,10 +86,10 @@ def calc_states_combined(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index
                 df_with_pca = df
             if query_to_filter_merged_df:
                 df_with_pca = df_with_pca.query(query_to_filter_merged_df)
-            for ind in df.columns:  # use individuals from original GE df
-                y = df_with_pca[ind]
-                model = LinearRegression(fit_intercept=fit_intercept).fit(df_with_pca[[x_col, y_col]], y)
+            tmp_d = calc_states_combined_inner(df, df_with_pca, x_col, y_col, fit_intercept)
+            for ind in tmp_d:
                 if ind not in states_by_all:
                     states_by_all[ind] = dict()
-                states_by_all[ind][sub_tissue] = (model.coef_[0], model.coef_[1])
+                states_by_all[ind][sub_tissue] = tmp_d[ind]
+
     return states_by_all
