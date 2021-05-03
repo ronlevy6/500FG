@@ -244,3 +244,21 @@ def get_vmin_vmax(df, get_bigger=False, verbose=False):
     if verbose:
         print(max1, max2)
     return -to_ret, to_ret
+
+
+def trim_extreme_col(col_vals, max_thresh, min_thresh, alpha=2):
+    """
+    should be called as part of df.apply(...)
+    """
+    col_max = col_vals.max()
+    col_min = col_vals.min()
+    col_mean = np.mean(col_vals)
+    if col_max-col_mean > max_thresh:
+        top_val = np.percentile(col_vals, 100-alpha)
+    else:
+        top_val = col_max
+    if col_min-col_mean < min_thresh:
+        min_val = np.percentile(col_vals, alpha)
+    else:
+        min_val = col_min
+    return col_vals[col_vals.between(min_val,top_val)]
