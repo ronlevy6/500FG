@@ -63,8 +63,9 @@ def calc_states(tissue_dict, pca_df, x_col='pc1', y_col='pc2', ge_index_col='nam
 def calc_states_combined_inner(tissue_df, df_with_pca, x_col='pc1', y_col='pc2', fit_intercept=False,):
     ret_d = dict()
     for ind in tissue_df.columns:  # use individuals from original GE df
-        y = df_with_pca[ind]
-        model = LinearRegression(fit_intercept=fit_intercept).fit(df_with_pca[[x_col, y_col]], y)
+        # y = df_with_pca[ind]
+        x_and_y = df_with_pca[[x_col, y_col, ind]].dropna()
+        model = LinearRegression(fit_intercept=fit_intercept).fit(x_and_y[[x_col, y_col]], x_and_y[ind])
         assert ind not in ret_d
         ret_d[ind] = (model.coef_[0], model.coef_[1])
     return ret_d
