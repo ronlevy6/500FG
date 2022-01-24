@@ -118,7 +118,7 @@ def smooth_data(ge_dict, pca_space, dist_df, x_col, y_col, col_to_change_to_orig
             # The merge is done to keep order
             curr_ge_df = ge_dict[tissue][sub_tissue]
             if need_to_merge:
-                pca_space_with_ge = pca_space.merge(curr_ge_df, left_index=True, right_on='name')
+                pca_space_with_ge = pca_space.merge(curr_ge_df, left_index=True, right_on=ge_index_col)
             else:
                 pca_space_with_ge = curr_ge_df
             if dist_df is None:

@@ -221,3 +221,37 @@ def remove_by_pval(reg_df, reg_results, thresh_pval=0.4, fillna=True):
     masked_np = np.ma.masked_where(pval_np >= thresh_pval, reg_np)
     masked_df = pd.DataFrame(masked_np, columns=reg_df.columns, index=reg_df.index)
     return masked_df.astype(float)
+
+
+def run_regression_on_all_tissues_and_attrs(states_df_to_use, attributes, reg_input, x_cols=[], fit_intercept=True,
+                                            remove_inner_outlier=True, model=None, curr_run_type=None, use_tissue=True,
+                                            check_shape=True):
+    #     reg_input[x_cols] =reg_input[x_cols].replace(vals_to_replace, np.nan)
+    reg_res_dict = dict()
+    for tissue in states_df_to_use.index.tolist():
+        if use_tissue:
+            x = reg_input[[tissue] + x_cols]
+        else:
+            if len(x_cols) == 0:
+                x = pd.DataFrame(index=reg_input.index)  # empty df with index only
+            else:
+                x = reg_input[x_cols]
+        x = x.dropna().astype(float)
+        for col in x.columns:
+            if len(set(x[col].values)) == 1:
+                x = x.drop(columns=[col])
+        if x.shape[1] == 0 and check_shape:
+            print("shape is 0")
+            return None
+        if len(x.dropna()) == 0:
+            print("no data at all".format(tissue, x_cols))
+            continue
+        for attr in attributes:
+            y = reg_input[attr].astype(float)
+
+            reg_sm = fit_tissues(x.astype(float), y, fit_intercept=fit_intercept,
+                                 remove_inner_outlier=remove_inner_outlier, model=model, curr_run_type=curr_run_type)
+            k = tuple([tissue] + x_cols + [attr])
+            assert k not in reg_res_dict
+            reg_res_dict[k] = reg_sm
+    return reg_res_dict
