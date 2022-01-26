@@ -2,12 +2,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 from utils import IS_NOTEBOOK
+from L1000.L1000_data_preparation import gather_data
 if IS_NOTEBOOK:
     from tqdm.notebook import tqdm
 else:
     from tqdm import tqdm
-
-from L1000.L1000_data_preperation import gather_data
 
 
 def plot_states_t_val(tmp_summary, states_t_val_ax, pert, cid, curr_cid_data_d, x='s1_real_genes', y='s2_real_genes',
