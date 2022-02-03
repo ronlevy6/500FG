@@ -159,3 +159,24 @@ def gather_data(pert, factory_res_d_to_use, metadata_with_states_d_to_use, sum_u
     replace_d = pert_analysis_summary.groupby(["cell_id"])['dosage'].max().to_dict()
 
     return pert_analysis_summary, pert_analysis_corr, raw_states_d[pert], replace_d
+
+
+def parse_series_matrix_metadata(df, specific_col_only=None, min_vals_in_col=1, verbose=True):
+    vals_d = dict()
+    for idx in range(len(df.columns)):
+        col = df.columns[idx]
+        if specific_col_only is not None and col != specific_col_only:
+            continue
+        if len(df.iloc[:, idx].unique()) > min_vals_in_col:
+            if verbose:
+                print(idx, col, len(df.iloc[:, idx].unique()))
+            curr_vals = df.iloc[:, idx].apply(lambda val: val.split(":"))
+            k = curr_vals.apply(lambda val: val[0].strip())
+            vals = curr_vals.apply(lambda val: val[1].strip())
+            assert len(set(k)) == 1
+            kk = set(k).pop()
+            if kk in vals_d:
+                vals_d[kk].update(vals.to_dict())
+            else:
+                vals_d[kk] = vals.to_dict()
+    return vals_d
