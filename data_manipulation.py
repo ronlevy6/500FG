@@ -283,7 +283,9 @@ def stack_per_ind(d, sub_tissue, ind, condition, is_anchor, anchor_genes, ge_ind
             try:
                 df = pd.DataFrame(d[tissue][sub_tissue][ind])
             except KeyError:
-                return None
+                continue
+    if df is None:
+        return
     assert df is not None
     if to_pct:
         make_as_pct(df, ind)
