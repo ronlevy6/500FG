@@ -11,23 +11,25 @@ if IS_NOTEBOOK:
 else:
     from tqdm import tqdm
 
-def get_closest_crtl(curr_crtl_df, trt_times):
+
+def get_closest_crtl(curr_crtl_df, trt_times, time_col="pert_time"):
     """
     fetch the control data which fits most the treatment times
     """
-    if len(set(curr_crtl_df.pert_time) & trt_times) > 0:
-        return curr_crtl_df[curr_crtl_df.pert_time.isin(trt_times)]
+    if len(set(curr_crtl_df[time_col]) & trt_times) > 0:
+        return curr_crtl_df[curr_crtl_df[time_col].isin(trt_times)]
     else:
         times_to_query = []
         for time in trt_times:
             curr_best = \
-                sorted(itertools.product(curr_crtl_df.pert_time.unique(), [time]), key=lambda t: abs(t[0] - t[1]))[0]
+                sorted(itertools.product(curr_crtl_df[time_col].unique(), [time]), key=lambda t: abs(t[0] - t[1]))[0]
             times_to_query.append(curr_best[0])
-        return curr_crtl_df[curr_crtl_df.pert_time.isin(times_to_query)]
+        return curr_crtl_df[curr_crtl_df[time_col].isin(times_to_query)]
 
 
 def test_and_plot_pert_states(cell_id, pert, curr_trt_df, crtl_df, cols_to_comp, to_save=None, to_show=False,
-                              specific_vars_to_ret=None, calc_anova=False, calc_t_test=False, ):
+                              specific_vars_to_ret=None, calc_anova=False, calc_t_test=False,
+                              x_col='s1', y_col='s2', size="pert_dose", style="pert_time", hue="pert_type"):
     """
     calculates ANOVA and t-test to find difference significance between control samples from same tissues as treatment
     dataset.
@@ -53,14 +55,14 @@ def test_and_plot_pert_states(cell_id, pert, curr_trt_df, crtl_df, cols_to_comp,
     if to_save is not None or to_show:
         # plots
         concat = pd.concat([curr_crtl_df, curr_trt_df])
-        if "s1" in concat.columns:
-            assert "s2" in concat.columns
-            x_col, y_col = "s1", "s2"
-        else:
-            assert "s1_real_genes" in concat.columns and "s2_real_genes" in concat.columns
-            x_col, y_col = "s1_real_genes", "s2_real_genes"
+        # if "s1" in concat.columns:
+        #     assert "s2" in concat.columns
+        #     x_col, y_col = "s1", "s2"
+        # else:
+        #     assert "s1_real_genes" in concat.columns and "s2_real_genes" in concat.columns
+        #     x_col, y_col = "s1_real_genes", "s2_real_genes"
 
-        g = sns.scatterplot(data=concat, x=x_col, y=y_col, size="pert_dose", style="pert_time", hue="pert_type")
+        g = sns.scatterplot(data=concat, x=x_col, y=y_col, size=size, style=style, hue=hue)
         plt.legend(bbox_to_anchor=(1.02, 1), loc=2)
         if x_col in anova_res_d:
             pval_title = '\ns1 pval {:.3f}, s2 pval {:.3f}'.format(-np.log(anova_res_d[x_col].pvalue),

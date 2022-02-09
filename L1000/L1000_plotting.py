@@ -56,12 +56,15 @@ def plot_corr(tmp_summary, tmp_corr, corr_ax, cid, curr_cid_data_d, pert_analysi
 
 
 def plot_states(crtl_states_by_cid, tmp_states, states_ax, cid, curr_cid_data_d, x='s1_real_genes', y='s2_real_genes',
-                cols_to_take=['cell_id', 'pert_dose', 'pert_iname_x', 'pert_time', 's1_real_genes', 's2_real_genes',
-                              'pert_type'], elaborate=False, verbose=False, full_res_to_use=None):
-    sns.scatterplot(data=crtl_states_by_cid[cid][cols_to_take], x=x, y=y,
+                cell_id_col="cell_id", pert_col="pert_iname_x", pval_x='s1_real_genes_t_pval',
+                pval_y="s2_real_genes_t_pval", cols_to_take=['pert_dose', 'pert_time', 'pert_type'],
+                elaborate=False, verbose=False, full_res_to_use=None):
+    cols_to_use = cols_to_take + [x, y, cell_id_col, pert_col]
+    # cols_to_use = list(set(cols_to_use))
+    sns.scatterplot(data=crtl_states_by_cid[cid][cols_to_use], x=x, y=y,
                     label='control', color='red', ax=states_ax, alpha=0.3)
 
-    sns.scatterplot(data=tmp_states[cols_to_take], x=x, y=y, label='trt',
+    sns.scatterplot(data=tmp_states[cols_to_use], x=x, y=y, label='trt',
                     size='pert_dose', legend='full', color='darkblue', ax=states_ax, alpha=0.8)
 
     states_ax.legend(bbox_to_anchor=(1.0, 1.07), title="dosage")
@@ -71,12 +74,12 @@ def plot_states(crtl_states_by_cid, tmp_states, states_ax, cid, curr_cid_data_d,
                                                        curr_cid_data_d['subtype'],
                                                        curr_cid_data_d['primary_site'])
     if elaborate:
-        pert = tmp_states['pert_iname_x'].unique()
+        pert = tmp_states[pert_col].unique()
         assert len(pert) == 1
         pert = pert[0]
-        comb_pval_df = full_res_to_use.query("(cell_id==@cid)&(pert_iname_x==@pert)").filter(regex='pval').applymap(
+        comb_pval_df = full_res_to_use.query("({}==@cid)&({}==@pert)".format(cell_id_col, pert_col)).filter(regex='pval').applymap(
             lambda val: -np.log10(val))
-        s1_pval, s2_pval = comb_pval_df[['s1_real_genes_t_pval', 's2_real_genes_t_pval']].values.flatten()
+        s1_pval, s2_pval = comb_pval_df[[pval_x, pval_y]].values.flatten()
         title = '{}\n{}'.format(pert.capitalize(), title)
         states_ax.text(s="-log(pval): {:.3f}, {:.3f}".format(s1_pval, s2_pval),
                        ha='left', va='top', x=0.05, y=0.95,
@@ -90,11 +93,15 @@ def plot_states(crtl_states_by_cid, tmp_states, states_ax, cid, curr_cid_data_d,
 
 def plot_perturbators_data(perts, curr_metadata_with_states_d, curr_factory_res_d, curr_sum_up_data, cid_data_d,
                            cids_to_use_per_pert, crtl_states_by_cid, to_save, output_file_path, save_pdf):
-    num_of_rows = len(perts)
+
+    num_of_rows = sum(len(v) for v in cids_to_use_per_pert.values())
     raw_states_d = dict()
     fig, axs = plt.subplots(ncols=3, nrows=num_of_rows,
                             figsize=(20, 4 * num_of_rows),
                             gridspec_kw={"wspace": 0.6, "hspace": 0.65})
+    if num_of_rows == 1:
+        axs = [axs]
+
     row_id = 0
     for pert in tqdm(perts):
         pert_analysis_summary, pert_analysis_corr, curr_raw_states_d, replace_d = gather_data(pert,
@@ -120,7 +127,7 @@ def plot_perturbators_data(perts, curr_metadata_with_states_d, curr_factory_res_
 
             plot_states_t_val(tmp_summary, states_t_val_ax, pert, cid, cid_data_d[cid])
 
-            plot_corr(tmp_summary, tmp_corr, corr_ax, cid, cid_data_d[cid])
+            plot_corr(tmp_summary, tmp_corr, corr_ax, cid, cid_data_d[cid], pert_analysis_summary)
 
             plot_states(crtl_states_by_cid, tmp_states, states_ax, cid, cid_data_d[cid])
 
